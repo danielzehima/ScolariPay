@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Fin de Démo - ScolariPay{% endblock %}
+
+{% block content %}
+<div class="container text-center py-5 mt-5">
+    <div class="card glass-card p-5 mx-auto shadow-lg border-0" style="max-width: 600px;">
+        <div class="mb-4">
+            <i class="fa-solid fa-hourglass-end text-warning" style="font-size: 4rem;"></i>
+        </div>
+        <h2 class="fw-bold mb-4" style="color: #0f4c81;">Votre démo express est terminée !</h2>
+        <p class="lead text-muted mb-4">Nous espérons que vous avez apprécié la simplicité et la puissance de ScolariPay pendant ces 24 heures. Pour continuer à utiliser toutes nos fonctionnalités et conserver vos données, passez à l'abonnement complet.</p>
+        
+        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+            <a href="/#tarifs" class="btn btn-success btn-lg rounded-pill px-5 shadow-sm">Voir nos offres et s'abonner</a>
+            <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary btn-lg rounded-pill px-4">Quitter</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - ScolariPay SaaS{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        /* Un dégradé moderne pour la page de connexion */
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+    }
+    .login-container {
+        max-width: 420px;
+        width: 100%;
+        margin: auto;
+    }
+    .btn-primary {
+        background-color: #0d6efd;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
+    }
+    .form-control {
+        padding: 12px;
+        border-radius: 8px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container mt-n5"> <!-- mt-n5 pour remonter un peu car la navbar n'est pas là -->
+    <div class="card glass-card p-4 p-md-5">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold" style="color: #0d6efd;">🎓 ScolariPay</h2>
+            <p class="text-muted">Gérez la scolarité de vos élèves</p>
+        </div>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="email" class="form-label text-muted fw-semibold">Adresse Email</label>
+                <input type="email" class="form-control bg-light" id="email" name="email" required placeholder="admin@saas.com">
+            </div>
+            <div class="mb-4">
+                <label for="password" class="form-label text-muted fw-semibold">Mot de passe</label>
+                <input type="password" class="form-control bg-light" id="password" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 rounded-pill">Se connecter</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

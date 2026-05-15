@@ -1,0 +1,11 @@
+venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+saas_dev.db
+.env
+.vscode/
+.DS_Store

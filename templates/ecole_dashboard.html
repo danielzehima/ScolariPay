@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard École - {{ ecole.nom }}{% endblock %}
+
+{% block content %}
+{% if ecole.est_demo and temps_restant is not none %}
+<div class="alert alert-warning text-center fw-bold shadow-sm rounded-pill mb-4 border-warning">
+    🚀 Mode Démo : Il vous reste {{ temps_restant }} heures avant l'expiration.
+</div>
+{% endif %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold mb-0">Bienvenue, {{ ecole.nom }}</h2>
+        <p class="text-muted mt-1">Voici le résumé de votre gestion scolaire.</p>
+    </div>
+    <div class="col-auto text-end">
+        <span class="text-muted d-block mb-1" style="font-size: 0.85em; text-transform: uppercase; letter-spacing: 1px;">Abonnement: {{ ecole.type_abonnement }}</span>
+        {% if ecole.statut == 'Suspendu' or est_expire %}
+            <span class="badge bg-danger rounded-pill px-3 py-2 shadow-sm">Abonnement Inactif</span>
+        {% else %}
+            <span class="badge bg-success rounded-pill px-3 py-2 shadow-sm">Abonnement Actif (jusqu'au {{ ecole.date_expiration.strftime('%d/%m/%Y') }})</span>
+        {% endif %}
+    </div>
+</div>
+
+{% if ecole.statut == 'Suspendu' or est_expire %}
+<div class="alert alert-danger border-0 shadow-sm d-flex align-items-center mb-4" role="alert">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle-fill flex-shrink-0 me-3" viewBox="0 0 16 16">
+        <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+    </svg>
+    <div>
+        <strong>Attention !</strong> Votre abonnement a expiré. Vous ne pouvez plus gérer les paiements ou inscrire de nouveaux élèves. Veuillez contacter l'administrateur.
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-4 mb-4">
+    <!-- Stat Cards -->
+    <div class="col-md-4">
+        <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #0d6efd;"></div>
+            <div class="card-body p-4">
+                <h6 class="text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">Total Élèves</h6>
+                <h1 class="mb-0 fw-bold" style="color: #0d6efd;">{{ ecole.eleves|length }}</h1>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #198754;"></div>
+            <div class="card-body p-4">
+                <h6 class="text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">Paiements Encaissés</h6>
+                <h1 class="mb-0 fw-bold" style="color: #198754;">{{ "%.2f"|format(total_paiements) }} €</h1>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #ffc107;"></div>
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <h6 class="text-muted text-uppercase fw-bold mb-3" style="letter-spacing: 0.5px;">Actions Rapides</h6>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addEleveModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %}>+ Nouvel Élève</button>
+                    <button class="btn btn-success btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addPaiementModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %}>Encaisser Paiement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card glass-card border-0">
+    <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+        <h5 class="fw-bold mb-0">Élèves Récents</h5>
+    </div>
+    <div class="card-body p-0">
+        {% if ecole.eleves %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Nom Complet</th>
+                        <th>Classe</th>
+                        <th class="pe-4 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eleve in ecole.eleves %}
+                    <tr>
+                        <td class="ps-4 text-muted">#{{ eleve.id }}</td>
+                        <td class="fw-bold text-dark">{{ eleve.prenom }} {{ eleve.nom }}</td>
+                        <td><span class="badge bg-secondary rounded-pill px-3">{{ eleve.classe }}</span></td>
+                        <td class="pe-4 text-end">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editEleveModal" data-id="{{ eleve.id }}" data-nom="{{ eleve.nom }}" data-prenom="{{ eleve.prenom }}" data-classe="{{ eleve.classe }}">Éditer</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-5 text-center">
+            <div class="text-muted mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-people" viewBox="0 0 16 16">
+                  <path d="M15 14s1 0 1-1-1-4-5-4-5 3-5 4 1 1 1 1h8Zm-7.978-1A.261.261 0 0 1 7 12.996c.001-.264.167-1.03.76-1.72C8.312 10.629 9.282 10 11 10c1.717 0 2.687.63 3.24 1.276.593.69.758 1.457.76 1.72l-.008.002a.274.274 0 0 1-.014.002H7.022ZM11 7a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm3-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM6.936 9.28a5.88 5.88 0 0 0-1.23-.247A7.35 7.35 0 0 0 5 9c-4 0-5 3-5 4 0 .667.333 1 1 1h4.216A2.238 2.238 0 0 1 5 13c0-1.01.377-2.042 1.09-2.904.243-.294.526-.569.846-.816ZM4.92 10A5.493 5.493 0 0 0 4 13H1c0-.26.164-1.03.76-1.724.545-.636 1.492-1.256 3.16-1.275ZM1.5 5.5a3 3 0 1 1 6 0 3 3 0 0 1-6 0Zm3-2a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"/>
+                </svg>
+            </div>
+            <p class="text-muted">La liste de vos élèves apparaîtra ici.</p>
+            <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addEleveModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %}>Ajouter le premier élève</button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal d'ajout d'un élève -->
+<div class="modal fade" id="addEleveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold">Ajouter un Élève</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('ajouter_eleve') }}" method="POST">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Nom</label>
+                  <input type="text" class="form-control bg-light" name="nom" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Prénom</label>
+                  <input type="text" class="form-control bg-light" name="prenom" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Classe</label>
+                  <input type="text" class="form-control bg-light" name="classe" placeholder="ex: 6ème B" required>
+              </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Enregistrer</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'ajout d'un paiement -->
+<div class="modal fade" id="addPaiementModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold text-success">Encaisser un Paiement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('ajouter_paiement') }}" method="POST">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Élève</label>
+                  <select class="form-select bg-light" name="eleve_id" required>
+                      <option value="" disabled selected>Choisir un élève...</option>
+                      {% for eleve in ecole.eleves %}
+                      <option value="{{ eleve.id }}">{{ eleve.prenom }} {{ eleve.nom }} ({{ eleve.classe }})</option>
+                      {% endfor %}
+                  </select>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Montant (€)</label>
+                  <input type="number" step="0.01" class="form-control bg-light" name="montant" required placeholder="ex: 150.00">
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Motif</label>
+                  <input type="text" class="form-control bg-light" name="motif" placeholder="ex: Scolarité Trimestre 1" required>
+              </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-success rounded-pill px-4">Valider le paiement</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'édition d'un élève -->
+<div class="modal fade" id="editEleveModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold">Modifier l'Élève</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editEleveForm" method="POST">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Nom</label>
+                  <input type="text" class="form-control bg-light" id="editEleveNom" name="nom" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Prénom</label>
+                  <input type="text" class="form-control bg-light" id="editElevePrenom" name="prenom" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Classe</label>
+                  <input type="text" class="form-control bg-light" id="editEleveClasse" name="classe" required>
+              </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Sauvegarder</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var editEleveModal = document.getElementById('editEleveModal')
+        if (editEleveModal) {
+            editEleveModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget
+                var id = button.getAttribute('data-id')
+                var nom = button.getAttribute('data-nom')
+                var prenom = button.getAttribute('data-prenom')
+                var classe = button.getAttribute('data-classe')
+                
+                var form = editEleveModal.querySelector('#editEleveForm')
+                form.action = '/ecole/editer_eleve/' + id
+                
+                editEleveModal.querySelector('#editEleveNom').value = nom
+                editEleveModal.querySelector('#editElevePrenom').value = prenom
+                editEleveModal.querySelector('#editEleveClasse').value = classe
+            })
+        }
+    })
+</script>
+{% endblock %}

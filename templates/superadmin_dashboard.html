@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard SuperAdmin{% endblock %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h2 class="fw-bold mb-0">Administration SaaS</h2>
+        <p class="text-muted mt-1">Gérez vos écoles clientes et leurs abonnements.</p>
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary shadow-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addEcoleModal">+ Nouvelle École</button>
+    </div>
+</div>
+
+<div class="card glass-card border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="ps-4">ID</th>
+                        <th>Nom de l'École</th>
+                        <th>Email</th>
+                        <th>Abonnement</th>
+                        <th>Expiration</th>
+                        <th>Statut</th>
+                        <th class="pe-4 text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ecole in etablissements %}
+                    <tr>
+                        <td class="ps-4 text-muted">#{{ ecole.id }}</td>
+                        <td class="fw-bold text-dark">{{ ecole.nom }}</td>
+                        <td class="text-muted">{{ ecole.email }}</td>
+                        <td>
+                            <span class="badge rounded-pill {% if ecole.type_abonnement == 'Annuel' %}bg-primary{% else %}bg-info{% endif %} bg-opacity-75">
+                                {{ ecole.type_abonnement }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="text-muted">{{ ecole.date_expiration.strftime('%d/%m/%Y') }}</span>
+                        </td>
+                        <td>
+                            {% if ecole.statut == 'Actif' %}
+                                <span class="badge bg-success rounded-pill px-3 py-2">Actif</span>
+                            {% else %}
+                                <span class="badge bg-danger rounded-pill px-3 py-2">Suspendu</span>
+                            {% endif %}
+                        </td>
+                        <td class="pe-4 text-end">
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editEcoleModal" data-id="{{ ecole.id }}" data-nom="{{ ecole.nom }}" data-statut="{{ ecole.statut }}" data-type="{{ ecole.type_abonnement }}">Éditer</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-5">
+                            <h5 class="fw-light">Aucune école cliente pour le moment.</h5>
+                            <p class="mb-0">Cliquez sur "+ Nouvelle École" pour commencer.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'ajout d'une école -->
+<div class="modal fade" id="addEcoleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold">Ajouter une Nouvelle École</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('ajouter_ecole') }}" method="POST">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Nom de l'établissement</label>
+                  <input type="text" class="form-control bg-light" name="nom" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Email de contact (Login Admin)</label>
+                  <input type="email" class="form-control bg-light" name="email" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Mot de passe (Admin)</label>
+                  <input type="password" class="form-control bg-light" name="password" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Type d'abonnement</label>
+                  <select class="form-select bg-light" name="type_abonnement" required>
+                      <option value="Mensuel">Mensuel (30 jours)</option>
+                      <option value="Annuel">Annuel (365 jours)</option>
+                  </select>
+              </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Créer l'école</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal d'édition d'une école -->
+<div class="modal fade" id="editEcoleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold">Modifier l'École</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="editEcoleForm" method="POST">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Nom de l'établissement</label>
+                  <input type="text" class="form-control bg-light" id="editNom" name="nom" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Type d'abonnement</label>
+                  <select class="form-select bg-light" id="editType" name="type_abonnement" required>
+                      <option value="Mensuel">Mensuel (30 jours)</option>
+                      <option value="Annuel">Annuel (365 jours)</option>
+                  </select>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Statut</label>
+                  <select class="form-select bg-light" id="editStatut" name="statut" required>
+                      <option value="Actif">Actif</option>
+                      <option value="Suspendu">Suspendu</option>
+                  </select>
+              </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-primary rounded-pill px-4">Sauvegarder</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var editEcoleModal = document.getElementById('editEcoleModal')
+        if (editEcoleModal) {
+            editEcoleModal.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget
+                var id = button.getAttribute('data-id')
+                var nom = button.getAttribute('data-nom')
+                var statut = button.getAttribute('data-statut')
+                var type = button.getAttribute('data-type')
+                
+                var form = editEcoleModal.querySelector('#editEcoleForm')
+                form.action = '/superadmin/editer_ecole/' + id
+                
+                editEcoleModal.querySelector('#editNom').value = nom
+                editEcoleModal.querySelector('#editStatut').value = statut
+                editEcoleModal.querySelector('#editType').value = type
+            })
+        }
+    })
+</script>
+{% endblock %}
