@@ -25,6 +25,7 @@
                         <th>Abonnement</th>
                         <th>Expiration</th>
                         <th>Statut</th>
+                        <th>Devise</th>
                         <th class="pe-4 text-end">Actions</th>
                     </tr>
                 </thead>
@@ -49,8 +50,9 @@
                                 <span class="badge bg-danger rounded-pill px-3 py-2">Suspendu</span>
                             {% endif %}
                         </td>
+                        <td><span class="badge bg-secondary rounded-pill">{{ ecole.devise }}</span></td>
                         <td class="pe-4 text-end">
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editEcoleModal" data-id="{{ ecole.id }}" data-nom="{{ ecole.nom }}" data-statut="{{ ecole.statut }}" data-type="{{ ecole.type_abonnement }}">Éditer</button>
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editEcoleModal" data-id="{{ ecole.id }}" data-nom="{{ ecole.nom }}" data-statut="{{ ecole.statut }}" data-type="{{ ecole.type_abonnement }}" data-devise="{{ ecole.devise }}">Éditer</button>
                         </td>
                     </tr>
                     {% else %}
@@ -96,6 +98,17 @@
                       <option value="Annuel">Annuel (365 jours)</option>
                   </select>
               </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Devise</label>
+                  <select class="form-select bg-light" name="devise" required>
+                      <option value="FCFA" selected>Franc CFA (FCFA)</option>
+                      <option value="GNF">Franc Guinéen (GNF)</option>
+                      <option value="CDF">Franc Congolais (CDF)</option>
+                      <option value="MAD">Dirham Marocain (MAD)</option>
+                      <option value="EUR">Euro (€)</option>
+                      <option value="USD">Dollar Américain ($)</option>
+                  </select>
+              </div>
           </div>
           <div class="modal-footer border-top-0">
             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
@@ -134,6 +147,17 @@
                       <option value="Suspendu">Suspendu</option>
                   </select>
               </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Devise</label>
+                  <select class="form-select bg-light" id="editDevise" name="devise" required>
+                      <option value="FCFA">Franc CFA (FCFA)</option>
+                      <option value="GNF">Franc Guinéen (GNF)</option>
+                      <option value="CDF">Franc Congolais (CDF)</option>
+                      <option value="MAD">Dirham Marocain (MAD)</option>
+                      <option value="EUR">Euro (€)</option>
+                      <option value="USD">Dollar Américain ($)</option>
+                  </select>
+              </div>
           </div>
           <div class="modal-footer border-top-0">
             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
@@ -156,6 +180,7 @@
                 var nom = button.getAttribute('data-nom')
                 var statut = button.getAttribute('data-statut')
                 var type = button.getAttribute('data-type')
+                var devise = button.getAttribute('data-devise')
                 
                 var form = editEcoleModal.querySelector('#editEcoleForm')
                 form.action = '/superadmin/editer_ecole/' + id
@@ -163,6 +188,7 @@
                 editEcoleModal.querySelector('#editNom').value = nom
                 editEcoleModal.querySelector('#editStatut').value = statut
                 editEcoleModal.querySelector('#editType').value = type
+                editEcoleModal.querySelector('#editDevise').value = devise
             })
         }
     })

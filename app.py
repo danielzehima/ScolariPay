@@ -1,9 +1,11 @@
-from flask import Flask, request, redirect, url_for, session, flash, abort, render_template
-from models import db, Etablissement, Utilisateur, Eleve, Paiement
+from flask import Flask, request, redirect, url_for, session, flash, abort, render_template, send_file
+from models import db, Etablissement, Utilisateur, Eleve, Paiement, Classe
 from datetime import datetime, timedelta
 import os
 import random
 import string
+import io
+from fpdf import FPDF
 
 app = Flask(__name__)
 # Clé secrète pour les sessions
@@ -13,7 +15,19 @@ basedir = os.path.abspath(os.path.dirname(__name__))
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'saas_dev.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Configuration Email (Pour le système de relance)
+app.config['MAIL_SERVER'] = 'smtp.gmail.com' # À configurer avec un vrai SMTP en prod
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'contact@scolaripay.com'
+app.config['MAIL_PASSWORD'] = 'motdepasse_smtp'
+app.config['MAIL_DEFAULT_SENDER'] = 'contact@scolaripay.com'
+
 db.init_app(app)
+
+# Ne pas oublier d'importer Mail plus haut si possible, sinon on l'importe ici :
+from flask_mail import Mail, Message
+mail = Mail(app)
 
 # ==============================================================================
 # MIDDLEWARE : Vérification de l'Abonnement et du Multi-Tenancy
@@ -115,6 +129,8 @@ def ajouter_ecole():
     type_abonnement = request.form.get('type_abonnement')
     password = request.form.get('password')
     
+    devise = request.form.get('devise', 'FCFA')
+    
     # Calcul de la date d'expiration
     if type_abonnement == 'Annuel':
         expiration = datetime.utcnow() + timedelta(days=365)
@@ -127,7 +143,8 @@ def ajouter_ecole():
         email=email,
         type_abonnement=type_abonnement,
         date_expiration=expiration,
-        statut='Actif'
+        statut='Actif',
+        devise=devise
     )
     db.session.add(nouvelle_ecole)
     db.session.flush() # Pour récupérer l'ID
@@ -153,6 +170,7 @@ def editer_ecole(id):
         
     ecole = Etablissement.query.get_or_404(id)
     ecole.nom = request.form.get('nom')
+    ecole.devise = request.form.get('devise', ecole.devise)
     
     nouveau_type = request.form.get('type_abonnement')
     if nouveau_type != ecole.type_abonnement:
@@ -179,12 +197,25 @@ def ecole_dashboard():
     est_expire = ecole.date_expiration < datetime.utcnow()
     total_paiements = sum(p.montant for p in ecole.paiements)
     
+    # Récupérer les classes pour le select
+    classes = Classe.query.filter_by(etablissement_id=ecole.id).all()
+    
+    # Logique pour les impayés (Élèves en retard)
+    eleves_en_retard = []
+    for eleve in ecole.eleves:
+        total_du = eleve.classe_associee.montant_inscription + eleve.classe_associee.montant_scolarite
+        total_paye = sum(p.montant for p in eleve.paiements)
+        reste_a_payer = total_du - total_paye
+        if reste_a_payer > 0:
+            eleve.reste_a_payer = reste_a_payer
+            eleves_en_retard.append(eleve)
+    
     temps_restant = None
     if ecole.est_demo and ecole.statut != 'Suspendu':
         heures_ecoulees = (datetime.utcnow() - ecole.date_creation).total_seconds() / 3600
         temps_restant = max(0, int(24 - heures_ecoulees))
     
-    return render_template('ecole_dashboard.html', ecole=ecole, est_expire=est_expire, total_paiements=total_paiements, temps_restant=temps_restant)
+    return render_template('ecole_dashboard.html', ecole=ecole, est_expire=est_expire, total_paiements=total_paiements, temps_restant=temps_restant, classes=classes, eleves_en_retard=eleves_en_retard)
 
 @app.route('/demarrer-demo')
 def demarrer_demo():
@@ -201,7 +232,8 @@ def demarrer_demo():
         date_expiration=datetime.utcnow() + timedelta(days=30),
         statut='Actif',
         est_demo=True,
-        date_creation=datetime.utcnow()
+        date_creation=datetime.utcnow(),
+        devise='FCFA'
     )
     db.session.add(nouvelle_ecole)
     db.session.flush()
@@ -236,6 +268,27 @@ def demander_demo():
     # Redirection vers la landing page avec ancre
     return redirect(url_for('index') + '#contact')
 
+@app.route('/ecole/ajouter_classe', methods=['POST'])
+def ajouter_classe():
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id:
+        abort(403)
+        
+    nom = request.form.get('nom')
+    montant_inscription = float(request.form.get('montant_inscription', 0))
+    montant_scolarite = float(request.form.get('montant_scolarite', 0))
+    
+    nouvelle_classe = Classe(
+        nom=nom,
+        montant_inscription=montant_inscription,
+        montant_scolarite=montant_scolarite,
+        etablissement_id=etablissement_id
+    )
+    db.session.add(nouvelle_classe)
+    db.session.commit()
+    flash(f"La classe {nom} a été créée avec succès.", "success")
+    return redirect(url_for('ecole_dashboard'))
+
 @app.route('/ecole/ajouter_eleve', methods=['POST'])
 def ajouter_eleve():
     etablissement_id = session.get('etablissement_id')
@@ -243,19 +296,22 @@ def ajouter_eleve():
         abort(403)
         
     ecole = Etablissement.query.get(etablissement_id)
-    # Double vérification de la validité de l'abonnement
     if ecole.date_expiration < datetime.utcnow() or ecole.statut == 'Suspendu':
         flash("Action impossible : abonnement inactif.", "danger")
         return redirect(url_for('ecole_dashboard'))
         
     nom = request.form.get('nom')
     prenom = request.form.get('prenom')
-    classe = request.form.get('classe')
+    nom_parent = request.form.get('nom_parent')
+    email_parent = request.form.get('email_parent')
+    classe_id = request.form.get('classe_id')
     
     nouvel_eleve = Eleve(
         nom=nom,
         prenom=prenom,
-        classe=classe,
+        nom_parent=nom_parent,
+        email_parent=email_parent,
+        classe_id=classe_id,
         etablissement_id=etablissement_id
     )
     db.session.add(nouvel_eleve)
@@ -271,13 +327,14 @@ def editer_eleve(id):
         abort(403)
         
     eleve = Eleve.query.get_or_404(id)
-    # Vérification stricte Multi-Tenant
     if eleve.etablissement_id != etablissement_id:
         abort(403)
         
     eleve.nom = request.form.get('nom')
     eleve.prenom = request.form.get('prenom')
-    eleve.classe = request.form.get('classe')
+    eleve.nom_parent = request.form.get('nom_parent')
+    eleve.email_parent = request.form.get('email_parent')
+    eleve.classe_id = request.form.get('classe_id')
     
     db.session.commit()
     flash(f"L'élève {eleve.prenom} {eleve.nom} a été mis à jour.", "success")
@@ -290,17 +347,18 @@ def ajouter_paiement():
         abort(403)
         
     ecole = Etablissement.query.get(etablissement_id)
-    # Vérification stricte : bloquer le paiement si l'abonnement est inactif
     if ecole.date_expiration < datetime.utcnow() or ecole.statut == 'Suspendu':
-        flash("Action bloquée : abonnement inactif. Vous ne pouvez pas encaisser de paiements.", "danger")
+        flash("Action bloquée : abonnement inactif.", "danger")
         return redirect(url_for('ecole_dashboard'))
         
     eleve_id = request.form.get('eleve_id')
-    montant = request.form.get('montant')
+    montant = float(request.form.get('montant'))
+    type_paiement = request.form.get('type_paiement')
     motif = request.form.get('motif')
     
     nouveau_paiement = Paiement(
-        montant=float(montant),
+        montant=montant,
+        type_paiement=type_paiement,
         motif=motif,
         eleve_id=eleve_id,
         etablissement_id=etablissement_id
@@ -311,10 +369,98 @@ def ajouter_paiement():
     flash("Le paiement a été encaissé avec succès.", "success")
     return redirect(url_for('ecole_dashboard'))
 
-# Exemple d'une route bloquée si abonnement expiré
-@app.route('/ecole/paiements', methods=['GET', 'POST'])
-def gerer_paiements():
-    return "Page de gestion des paiements. (Cette page n'est accessible que si l'abonnement est actif)."
+@app.route('/ecole/relance/<int:eleve_id>', methods=['POST'])
+def relance_email(eleve_id):
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id:
+        abort(403)
+        
+    eleve = Eleve.query.get_or_404(eleve_id)
+    if eleve.etablissement_id != etablissement_id:
+        abort(403)
+        
+    if not eleve.email_parent:
+        flash("Aucun email parent configuré pour cet élève.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+        
+    total_du = eleve.classe_associee.montant_inscription + eleve.classe_associee.montant_scolarite
+    total_paye = sum(p.montant for p in eleve.paiements)
+    reste_a_payer = total_du - total_paye
+    
+    msg = Message(f"Rappel de paiement - {eleve.etablissement.nom}", recipients=[eleve.email_parent])
+    msg.body = f"""Bonjour {eleve.nom_parent or 'Madame, Monsieur'},
+    
+Sauf erreur de notre part, nous constatons qu'il reste un solde de {reste_a_payer} {eleve.etablissement.devise} concernant la scolarité de {eleve.prenom} en classe de {eleve.classe_associee.nom}.
+
+Nous vous remercions de bien vouloir régulariser la situation dans les meilleurs délais.
+    
+Cordialement,
+La Direction de {eleve.etablissement.nom}
+"""
+    try:
+        mail.send(msg)
+        flash(f"L'email de relance a été envoyé avec succès à {eleve.email_parent}.", "success")
+    except Exception as e:
+        flash(f"(Simulation) L'email de relance aurait été envoyé à {eleve.email_parent}. Solde : {reste_a_payer} {eleve.etablissement.devise}.", "info")
+        
+    return redirect(url_for('ecole_dashboard'))
+
+@app.route('/paiement/<int:paiement_id>/pdf')
+def generer_recu_pdf(paiement_id):
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id:
+        abort(403)
+        
+    paiement = Paiement.query.get_or_404(paiement_id)
+    if paiement.etablissement_id != etablissement_id:
+        abort(403)
+        
+    eleve = paiement.eleve
+    total_du = eleve.classe_associee.montant_inscription + eleve.classe_associee.montant_scolarite
+    total_paye = sum(p.montant for p in eleve.paiements)
+    reste_a_payer = total_du - total_paye
+    
+    pdf = FPDF()
+    pdf.add_page()
+    
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt=eleve.etablissement.nom.upper(), ln=True, align='C')
+    pdf.set_font("Arial", '', 10)
+    pdf.cell(200, 10, txt=f"Date d'édition : {datetime.utcnow().strftime('%d/%m/%Y')}", ln=True, align='C')
+    
+    pdf.ln(20)
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(200, 10, txt=f"RECU DE PAIEMENT N {paiement.id}", ln=True, align='C')
+    pdf.ln(10)
+    
+    pdf.set_font("Arial", '', 12)
+    pdf.cell(100, 10, txt=f"Eleve : {eleve.prenom} {eleve.nom}", ln=True)
+    pdf.cell(100, 10, txt=f"Classe : {eleve.classe_associee.nom}", ln=True)
+    pdf.cell(100, 10, txt=f"Parent : {eleve.nom_parent or 'Non renseigne'}", ln=True)
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(100, 10, txt=f"Type de reglement : {paiement.type_paiement}", ln=True)
+    pdf.cell(100, 10, txt=f"Motif : {paiement.motif}", ln=True)
+    pdf.cell(100, 10, txt=f"Date : {paiement.date_paiement.strftime('%d/%m/%Y %H:%M')}", ln=True)
+    
+    pdf.ln(10)
+    pdf.set_font("Arial", 'B', 14)
+    pdf.cell(100, 10, txt=f"MONTANT PAYE : {paiement.montant} {eleve.etablissement.devise}", ln=True)
+    pdf.set_font("Arial", 'I', 11)
+    pdf.cell(100, 10, txt=f"Solde restant du sur l'annee : {reste_a_payer} {eleve.etablissement.devise}", ln=True)
+    
+    pdf.ln(30)
+    pdf.set_font("Arial", 'I', 10)
+    pdf.cell(200, 10, txt="La Direction - Document genere par ScolariPay", ln=True, align='C')
+    
+    pdf_output = pdf.output(dest='S').encode('latin1')
+    return send_file(
+        io.BytesIO(pdf_output),
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f"Recu_{paiement.id}_{eleve.prenom}.pdf"
+    )
 
 # ==============================================================================
 # INITIALISATION
