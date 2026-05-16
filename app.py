@@ -4,15 +4,18 @@ from datetime import datetime, timedelta
 import os
 import random
 import string
+import csv
 import io
 from fpdf import FPDF
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 # Clé secrète pour les sessions
 app.config['SECRET_KEY'] = 'ma_cle_secrete_dev' 
 # Base de données SQLite pour le développement
 basedir = os.path.abspath(os.path.dirname(__name__))
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'saas_dev.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'saas_dev_v2.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Configuration Email (Pour le système de relance)
@@ -24,6 +27,7 @@ app.config['MAIL_PASSWORD'] = 'motdepasse_smtp'
 app.config['MAIL_DEFAULT_SENDER'] = 'contact@scolaripay.com'
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
 # Ne pas oublier d'importer Mail plus haut si possible, sinon on l'importe ici :
 from flask_mail import Mail, Message
@@ -87,10 +91,11 @@ def index():
 def login():
     if request.method == 'POST':
         email = request.form.get('email')
-        password = request.form.get('password') # À sécuriser avec hachage (ex: werkzeug.security) en prod
+        password = request.form.get('password')
         
         user = Utilisateur.query.filter_by(email=email).first()
-        if user and user.mot_de_passe == password:
+        # Vérification sécurisée du mot de passe
+        if user and check_password_hash(user.mot_de_passe, password):
             # Initialisation de la session
             session['user_id'] = user.id
             session['user_role'] = user.role
@@ -109,6 +114,51 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/inscription', methods=['GET', 'POST'])
+def inscription():
+    if request.method == 'POST':
+        nom = request.form.get('nom')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        devise = request.form.get('devise', 'FCFA')
+        
+        # Vérifier si l'email existe déjà
+        if Utilisateur.query.filter_by(email=email).first():
+            flash("Cet email est déjà utilisé. Veuillez vous connecter.", "danger")
+            return redirect(url_for('inscription'))
+            
+        nouvelle_ecole = Etablissement(
+            nom=nom,
+            email=email,
+            type_abonnement='Mensuel',
+            date_expiration=datetime.utcnow() + timedelta(days=30),
+            statut='Actif',
+            est_demo=False,
+            devise=devise
+        )
+        db.session.add(nouvelle_ecole)
+        db.session.flush()
+        
+        nouvel_admin = Utilisateur(
+            nom=f"Directeur {nom}",
+            email=email,
+            mot_de_passe=generate_password_hash(password),
+            role='Admin',
+            etablissement_id=nouvelle_ecole.id
+        )
+        db.session.add(nouvel_admin)
+        db.session.commit()
+        
+        # Connexion automatique
+        session['user_id'] = nouvel_admin.id
+        session['user_role'] = nouvel_admin.role
+        session['etablissement_id'] = nouvelle_ecole.id
+        
+        flash("Inscription réussie ! Bienvenue sur votre nouvel espace de gestion.", "success")
+        return redirect(url_for('ecole_dashboard'))
+        
+    return render_template('inscription.html')
 
 @app.route('/superadmin')
 def superadmin_dashboard():
@@ -149,11 +199,11 @@ def ajouter_ecole():
     db.session.add(nouvelle_ecole)
     db.session.flush() # Pour récupérer l'ID
     
-    # Création du compte Admin de l'école
+    # Création du compte Admin de l'école avec hachage
     nouvel_admin = Utilisateur(
         nom=f"Admin {nom}",
-        email=email, # On réutilise l'email de l'école pour le login admin
-        mot_de_passe=password,
+        email=email,
+        mot_de_passe=generate_password_hash(password),
         role='Admin',
         etablissement_id=nouvelle_ecole.id
     )
@@ -190,32 +240,129 @@ def editer_ecole(id):
 @app.route('/ecole')
 def ecole_dashboard():
     # Protection de route et Multi-tenancy
-    if not session.get('etablissement_id'):
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id:
         abort(403)
         
-    ecole = Etablissement.query.get(session['etablissement_id'])
+    ecole = Etablissement.query.get(etablissement_id)
+    if not ecole:
+        session.clear()
+        return redirect(url_for('login'))
+        
     est_expire = ecole.date_expiration < datetime.utcnow()
     total_paiements = sum(p.montant for p in ecole.paiements)
+    
+    # S'assurer que tous les élèves ont un code parent (pour la rétrocompatibilité)
+    eleves_modifies = False
+    for eleve in ecole.eleves:
+        if not eleve.code_parent:
+            eleve.code_parent = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            eleves_modifies = True
+    if eleves_modifies:
+        db.session.commit()
     
     # Récupérer les classes pour le select
     classes = Classe.query.filter_by(etablissement_id=ecole.id).all()
     
-    # Logique pour les impayés (Élèves en retard)
+    # Logique pour les impayés et le Taux de Recouvrement
     eleves_en_retard = []
+    total_attendu = 0
     for eleve in ecole.eleves:
         total_du = eleve.classe_associee.montant_inscription + eleve.classe_associee.montant_scolarite
+        total_attendu += total_du
+        
         total_paye = sum(p.montant for p in eleve.paiements)
         reste_a_payer = total_du - total_paye
         if reste_a_payer > 0:
             eleve.reste_a_payer = reste_a_payer
             eleves_en_retard.append(eleve)
+            
+    taux_recouvrement = 0
+    if total_attendu > 0:
+        taux_recouvrement = round((total_paiements / total_attendu) * 100)
+        
+    # Graphique des 7 derniers jours
+    import json
+    chart_labels = []
+    chart_data = []
+    aujourdhui = datetime.utcnow().date()
+    # On prépare les 7 derniers jours (du plus ancien au plus récent)
+    dict_paiements = {aujourdhui - timedelta(days=i): 0 for i in range(6, -1, -1)}
+    
+    for paiement in ecole.paiements:
+        date_p = paiement.date_paiement.date()
+        if date_p in dict_paiements:
+            dict_paiements[date_p] += paiement.montant
+            
+    for date_jour, montant in dict_paiements.items():
+        chart_labels.append(date_jour.strftime('%d/%m'))
+        chart_data.append(montant)
     
     temps_restant = None
     if ecole.est_demo and ecole.statut != 'Suspendu':
         heures_ecoulees = (datetime.utcnow() - ecole.date_creation).total_seconds() / 3600
         temps_restant = max(0, int(24 - heures_ecoulees))
     
-    return render_template('ecole_dashboard.html', ecole=ecole, est_expire=est_expire, total_paiements=total_paiements, temps_restant=temps_restant, classes=classes, eleves_en_retard=eleves_en_retard)
+    return render_template('ecole_dashboard.html', 
+                           ecole=ecole, 
+                           est_expire=est_expire, 
+                           total_paiements=total_paiements, 
+                           temps_restant=temps_restant, 
+                           classes=classes, 
+                           eleves_en_retard=eleves_en_retard,
+                           taux_recouvrement=taux_recouvrement,
+                           total_attendu=total_attendu,
+                           chart_labels=json.dumps(chart_labels),
+                           chart_data=json.dumps(chart_data))
+
+@app.route('/ecole/export_rapport')
+def export_rapport():
+    if not session.get('etablissement_id'):
+        abort(403)
+        
+    ecole = Etablissement.query.get(session['etablissement_id'])
+    est_expire = ecole.date_expiration < datetime.utcnow()
+    if est_expire or ecole.statut == 'Suspendu':
+        flash("Action bloquée : Abonnement inactif.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+        
+    si = io.StringIO()
+    # On utilise le point-virgule comme séparateur, plus pratique pour Excel en français
+    writer = csv.writer(si, delimiter=';')
+    
+    # En-têtes
+    writer.writerow(['Nom', 'Prénom', 'Classe', 'Parent', 'Email Parent', 'Total Dû', 'Total Payé', 'Reste à Payer', 'Devise'])
+    
+    # Données
+    for eleve in ecole.eleves:
+        total_du = eleve.classe_associee.montant_inscription + eleve.classe_associee.montant_scolarite
+        total_paye = sum(p.montant for p in eleve.paiements)
+        reste_a_payer = total_du - total_paye
+        
+        writer.writerow([
+            eleve.nom,
+            eleve.prenom,
+            eleve.classe_associee.nom,
+            eleve.nom_parent or '',
+            eleve.email_parent or '',
+            total_du,
+            total_paye,
+            reste_a_payer,
+            ecole.devise
+        ])
+        
+    # Conversion en BytesIO avec encodage utf-8-sig (BOM) pour qu'Excel reconnaisse bien les accents
+    output = io.BytesIO()
+    output.write(si.getvalue().encode('utf-8-sig'))
+    output.seek(0)
+    
+    date_str = datetime.utcnow().strftime('%Y-%m-%d')
+    return send_file(
+        output,
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name=f"rapport_ecole_{date_str}.csv"
+    )
 
 @app.route('/demarrer-demo')
 def demarrer_demo():
@@ -273,6 +420,9 @@ def ajouter_classe():
     etablissement_id = session.get('etablissement_id')
     if not etablissement_id:
         abort(403)
+    if session.get('user_role') != 'Admin':
+        flash("Accès refusé : Seul l'administrateur peut configurer les classes.", "danger")
+        return redirect(url_for('ecole_dashboard'))
         
     nom = request.form.get('nom')
     montant_inscription = float(request.form.get('montant_inscription', 0))
@@ -312,7 +462,8 @@ def ajouter_eleve():
         nom_parent=nom_parent,
         email_parent=email_parent,
         classe_id=classe_id,
-        etablissement_id=etablissement_id
+        etablissement_id=etablissement_id,
+        code_parent=''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
     )
     db.session.add(nouvel_eleve)
     db.session.commit()
@@ -361,13 +512,57 @@ def ajouter_paiement():
         type_paiement=type_paiement,
         motif=motif,
         eleve_id=eleve_id,
-        etablissement_id=etablissement_id
+        etablissement_id=etablissement_id,
+        enregistre_par_id=session.get('user_id')
     )
     db.session.add(nouveau_paiement)
     db.session.commit()
     
     flash("Le paiement a été encaissé avec succès.", "success")
     return redirect(url_for('ecole_dashboard'))
+
+@app.route('/ecole/ajouter_caissier', methods=['POST'])
+def ajouter_caissier():
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id or session.get('user_role') != 'Admin':
+        abort(403)
+        
+    nom = request.form.get('nom')
+    email = request.form.get('email')
+    password = request.form.get('password')
+    
+    # Vérification email
+    if Utilisateur.query.filter_by(email=email).first():
+        flash("Cet email est déjà utilisé par un autre utilisateur.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+        
+    nouveau_caissier = Utilisateur(
+        nom=nom,
+        email=email,
+        mot_de_passe=generate_password_hash(password),
+        role='Caissier',
+        etablissement_id=etablissement_id
+    )
+    db.session.add(nouveau_caissier)
+    db.session.commit()
+    flash(f"Le compte caissier pour {nom} a été créé.", "success")
+    return redirect(url_for('ecole_dashboard'))
+
+@app.route('/parent/<code>')
+def portail_parent(code):
+    eleve = Eleve.query.filter_by(code_parent=code).first_or_404()
+    ecole = eleve.etablissement
+    
+    total_du = eleve.classe_associee.montant_inscription + eleve.classe_associee.montant_scolarite
+    total_paye = sum(p.montant for p in eleve.paiements)
+    reste_a_payer = total_du - total_paye
+    
+    return render_template('portail_parent.html', 
+                           eleve=eleve, 
+                           ecole=ecole, 
+                           total_du=total_du, 
+                           total_paye=total_paye, 
+                           reste_a_payer=reste_a_payer)
 
 @app.route('/ecole/relance/<int:eleve_id>', methods=['POST'])
 def relance_email(eleve_id):

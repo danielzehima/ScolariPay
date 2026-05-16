@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portail Parent - {{ ecole.nom }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-bg {
+            background: linear-gradient(135deg, #0f4c81 0%, #198754 100%);
+            color: white;
+            padding: 3rem 1rem 4rem 1rem;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            text-align: center;
+        }
+        .info-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-top: -3rem;
+            padding: 2rem;
+            border: none;
+        }
+        .amount-display {
+            font-size: 2.5rem;
+            font-weight: 800;
+        }
+        .text-success-custom { color: #198754; }
+        .text-danger-custom { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header-bg shadow">
+        <h2 class="fw-bold mb-1"><i class="fa-solid fa-graduation-cap me-2"></i>{{ ecole.nom }}</h2>
+        <p class="mb-0 opacity-75">Portail de suivi de scolarité</p>
+    </div>
+
+    <div class="container mb-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card info-card">
+                    <div class="text-center mb-4">
+                        <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 70px; height: 70px;">
+                            <i class="fa-solid fa-user-graduate fs-2 text-primary"></i>
+                        </div>
+                        <h3 class="fw-bold mb-0">{{ eleve.prenom }} {{ eleve.nom }}</h3>
+                        <span class="badge bg-primary rounded-pill mt-2 px-3 py-2">Classe : {{ eleve.classe_associee.nom }}</span>
+                    </div>
+
+                    <hr class="text-muted opacity-25 my-4">
+
+                    <div class="text-center mb-4">
+                        <p class="text-muted text-uppercase fw-bold mb-1" style="letter-spacing: 1px; font-size: 0.9rem;">Reste à payer</p>
+                        {% if reste_a_payer > 0 %}
+                            <div class="amount-display text-danger-custom">{{ "%.0f"|format(reste_a_payer) }} <span class="fs-4">{{ ecole.devise }}</span></div>
+                            <p class="text-muted mt-2 small"><i class="fa-solid fa-circle-info me-1"></i>Veuillez régulariser cette somme auprès de l'établissement.</p>
+                        {% else %}
+                            <div class="amount-display text-success-custom"><i class="fa-solid fa-check-circle me-2"></i>À jour</div>
+                            <p class="text-muted mt-2 small">La scolarité est entièrement réglée.</p>
+                        {% endif %}
+                    </div>
+
+                    <div class="row text-center mb-4 g-2">
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <p class="text-muted mb-1 small text-uppercase">Total de l'année</p>
+                                <h5 class="fw-bold mb-0">{{ "%.0f"|format(total_du) }} {{ ecole.devise }}</h5>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 bg-light rounded-3">
+                                <p class="text-muted mb-1 small text-uppercase">Déjà versé</p>
+                                <h5 class="fw-bold mb-0 text-success">{{ "%.0f"|format(total_paye) }} {{ ecole.devise }}</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold mb-3 mt-4"><i class="fa-solid fa-clock-rotate-left me-2 text-muted"></i>Derniers versements</h6>
+                    {% if eleve.paiements %}
+                        <div class="list-group list-group-flush border-top border-bottom">
+                            {% for paiement in eleve.paiements|sort(attribute='date_paiement', reverse=True) %}
+                            <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold">{{ paiement.motif }}</h6>
+                                    <small class="text-muted">{{ paiement.date_paiement.strftime('%d/%m/%Y') }} - {{ paiement.type_paiement }}</small>
+                                </div>
+                                <span class="badge bg-success rounded-pill px-3 py-2">+ {{ "%.0f"|format(paiement.montant) }} {{ ecole.devise }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center text-muted p-4 bg-light rounded-3">
+                            Aucun versement enregistré pour le moment.
+                        </div>
+                    {% endif %}
+                    
+                    <div class="text-center mt-4">
+                        <small class="text-muted">Propulsé par <strong>ScolariPay</strong></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

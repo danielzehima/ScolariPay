@@ -31,40 +31,74 @@
 </div>
 {% endif %}
 
-<div class="row g-4 mb-4">
+<div class="row g-3 mb-4">
     <!-- Stat Cards -->
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
             <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #0d6efd;"></div>
             <div class="card-body p-4">
                 <h6 class="text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">Total Élèves</h6>
-                <h1 class="mb-0 fw-bold" style="color: #0d6efd;">{{ ecole.eleves|length }}</h1>
+                <h2 class="mb-0 fw-bold" style="color: #0d6efd;">{{ ecole.eleves|length }}</h2>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
             <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #198754;"></div>
             <div class="card-body p-4">
-                <h6 class="text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">Paiements Encaissés</h6>
-                <h1 class="mb-0 fw-bold" style="color: #198754;">{{ "%.2f"|format(total_paiements) }} {{ ecole.devise }}</h1>
+                <h6 class="text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">Encaissé</h6>
+                <h2 class="mb-0 fw-bold" style="color: #198754;">{{ "%.0f"|format(total_paiements) }} <small class="fs-6">{{ ecole.devise }}</small></h2>
+                <small class="text-muted">sur {{ "%.0f"|format(total_attendu) }} attendus</small>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
+        <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
+            <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #6f42c1;"></div>
+            <div class="card-body p-4">
+                <h6 class="text-muted text-uppercase fw-bold" style="letter-spacing: 0.5px;">Recouvrement</h6>
+                <div class="d-flex align-items-center mb-2">
+                    <h2 class="mb-0 fw-bold me-2" style="color: #6f42c1;">{{ taux_recouvrement }}%</h2>
+                </div>
+                <div class="progress" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ taux_recouvrement }}%; background-color: #6f42c1;" aria-valuenow="{{ taux_recouvrement }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
         <div class="card glass-card border-0 h-100 position-relative overflow-hidden">
             <div class="position-absolute top-0 start-0 w-100" style="height: 4px; background-color: #ffc107;"></div>
-            <div class="card-body p-4 d-flex flex-column justify-content-center">
-                <h6 class="text-muted text-uppercase fw-bold mb-3" style="letter-spacing: 0.5px;">Actions Rapides</h6>
-                <div class="d-grid gap-2">
-                    <button class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addClasseModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %}>+ Nouvelle Classe</button>
-                    <button class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addEleveModal" {% if ecole.statut == 'Suspendu' or est_expire or classes|length == 0 %}disabled{% endif %}>+ Nouvel Élève</button>
-                    <button class="btn btn-success btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addPaiementModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %}>Encaisser Paiement</button>
+            <div class="card-body p-3 d-flex flex-column justify-content-center">
+                <h6 class="text-muted text-uppercase fw-bold mb-2" style="letter-spacing: 0.5px; font-size: 0.8rem;">Actions Rapides</h6>
+                <div class="d-grid gap-1">
+                    {% if session.get('user_role') == 'Admin' %}
+                    <button class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addClasseModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %} style="font-size: 0.8rem;">+ Classe</button>
+                    <button class="btn btn-outline-info btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addCaissierModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %} style="font-size: 0.8rem;"><i class="fa-solid fa-user-plus"></i> Caissier</button>
+                    {% endif %}
+                    <button class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addEleveModal" {% if ecole.statut == 'Suspendu' or est_expire or classes|length == 0 %}disabled{% endif %} style="font-size: 0.8rem;">+ Élève</button>
+                    <button class="btn btn-success btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#addPaiementModal" {% if ecole.statut == 'Suspendu' or est_expire %}disabled{% endif %} style="font-size: 0.8rem;">Encaisser</button>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Section Graphique -->
+{% if session.get('user_role') == 'Admin' %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card glass-card border-0">
+            <div class="card-header bg-transparent border-bottom pt-4 pb-3">
+                <h5 class="fw-bold mb-0"><i class="fa-solid fa-chart-line text-primary me-2"></i>Encaissements des 7 derniers jours</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="revenusChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <div class="row g-4 mb-4">
     <div class="col-lg-8">
@@ -92,7 +126,10 @@
                                 <td><span class="badge bg-secondary rounded-pill px-3">{{ eleve.classe_associee.nom }}</span></td>
                                 <td><small class="text-muted">{{ eleve.nom_parent or '-' }}<br>{{ eleve.email_parent or '-' }}</small></td>
                                 <td class="pe-4 text-end">
-                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editEleveModal" data-id="{{ eleve.id }}" data-nom="{{ eleve.nom }}" data-prenom="{{ eleve.prenom }}" data-classe="{{ eleve.classe_id }}" data-nomparent="{{ eleve.nom_parent }}" data-emailparent="{{ eleve.email_parent }}">Éditer</button>
+                                    <div class="btn-group">
+                                        <a href="{{ url_for('portail_parent', code=eleve.code_parent) }}" target="_blank" class="btn btn-sm btn-outline-success px-3" title="Ouvrir le portail parent"><i class="fa-solid fa-share-nodes me-1"></i> Portail</a>
+                                        <button class="btn btn-sm btn-outline-secondary px-3" data-bs-toggle="modal" data-bs-target="#editEleveModal" data-id="{{ eleve.id }}" data-nom="{{ eleve.nom }}" data-prenom="{{ eleve.prenom }}" data-classe="{{ eleve.classe_id }}" data-nomparent="{{ eleve.nom_parent }}" data-emailparent="{{ eleve.email_parent }}"><i class="fa-solid fa-pen"></i></button>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -199,6 +236,7 @@
                                 <th>Type</th>
                                 <th>Motif</th>
                                 <th>Montant</th>
+                                <th>Encaissé par</th>
                                 <th class="pe-4 text-end">Reçu</th>
                             </tr>
                         </thead>
@@ -211,6 +249,13 @@
                                 <td><span class="badge bg-info rounded-pill">{{ paiement.type_paiement }}</span></td>
                                 <td>{{ paiement.motif }}</td>
                                 <td class="text-success fw-bold">+ {{ "%.2f"|format(paiement.montant) }} {{ ecole.devise }}</td>
+                                <td>
+                                    {% if paiement.enregistre_par %}
+                                    <span class="badge bg-light text-dark border"><i class="fa-solid fa-user-circle text-muted me-1"></i>{{ paiement.enregistre_par.nom }}</span>
+                                    {% else %}
+                                    <span class="badge bg-light text-muted border">Non spécifié</span>
+                                    {% endif %}
+                                </td>
                                 <td class="pe-4 text-end">
                                     <a href="{{ url_for('generer_recu_pdf', paiement_id=paiement.id) }}" class="btn btn-sm btn-outline-dark rounded-pill px-3"><i class="fa-solid fa-file-pdf text-danger me-1"></i> PDF</a>
                                 </td>
@@ -403,10 +448,86 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Ajout Caissier -->
+<div class="modal fade" id="addCaissierModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-card border-0">
+      <div class="modal-header border-bottom-0">
+        <h5 class="modal-title fw-bold text-info"><i class="fa-solid fa-user-shield me-2"></i>Nouveau Caissier</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="{{ url_for('ajouter_caissier') }}" method="POST">
+          <div class="modal-body">
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Nom complet</label>
+                  <input type="text" class="form-control bg-light" name="nom" required placeholder="Ex: Secrétaire Jeanne">
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Email de connexion</label>
+                  <input type="email" class="form-control bg-light" name="email" required>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label text-muted fw-semibold">Mot de passe</label>
+                  <input type="password" class="form-control bg-light" name="password" required>
+              </div>
+              <div class="alert alert-info mt-3 py-2">
+                  <small><i class="fa-solid fa-info-circle me-1"></i>Un caissier peut ajouter des élèves et encaisser des paiements, mais ne peut pas modifier les tarifs des classes.</small>
+              </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-outline-secondary rounded-pill px-4" data-bs-dismiss="modal">Annuler</button>
+            <button type="submit" class="btn btn-info text-white rounded-pill px-4">Créer le compte</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    {% if session.get('user_role') == 'Admin' %}
+    // Initialisation du graphique Chart.js
+    const ctx = document.getElementById('revenusChart').getContext('2d');
+    const chartLabels = {{ chart_labels|safe }};
+    const chartData = {{ chart_data|safe }};
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartLabels,
+            datasets: [{
+                label: 'Encaissements ({{ ecole.devise }})',
+                data: chartData,
+                borderColor: '#0d6efd',
+                backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                borderWidth: 3,
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#0d6efd',
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { borderDash: [5, 5] }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+    {% endif %}
+
     document.addEventListener('DOMContentLoaded', function () {
         var editEleveModal = document.getElementById('editEleveModal')
         if (editEleveModal) {

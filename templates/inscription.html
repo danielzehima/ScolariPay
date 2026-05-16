@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Créer mon école - ScolariPay SaaS{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+    }
+    .login-container {
+        max-width: 480px;
+        width: 100%;
+        margin: auto;
+    }
+    .btn-primary-custom {
+        background-color: #0f4c81;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: white;
+    }
+    .btn-primary-custom:hover {
+        background-color: #0a355a;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(15, 76, 129, 0.3);
+    }
+    .btn-success-custom {
+        background-color: #198754;
+        border: none;
+        padding: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: white;
+    }
+    .btn-success-custom:hover {
+        background-color: #146c43;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(25, 135, 84, 0.3);
+    }
+    .form-control, .form-select {
+        padding: 12px;
+        border-radius: 8px;
+    }
+    .text-primary-custom {
+        color: #0f4c81 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="login-container mt-n5">
+    <div class="card glass-card p-4 p-md-5">
+        <div class="text-center mb-4">
+            <h2 class="fw-bold text-primary-custom"><i class="fa-solid fa-graduation-cap me-2"></i>ScolariPay</h2>
+            <p class="text-muted">Créez votre compte et démarrez votre essai gratuit de 30 jours.</p>
+        </div>
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label text-muted fw-semibold">Nom de l'établissement</label>
+                <input type="text" class="form-control bg-light" name="nom" required placeholder="Ex: Lycée Excellence">
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted fw-semibold">Adresse Email</label>
+                <input type="email" class="form-control bg-light" name="email" required placeholder="direction@ecole.fr">
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-muted fw-semibold">Mot de passe</label>
+                <input type="password" class="form-control bg-light" name="password" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label text-muted fw-semibold">Devise principale</label>
+                <select class="form-select bg-light" name="devise" required>
+                    <option value="FCFA" selected>Franc CFA (FCFA)</option>
+                    <option value="GNF">Franc Guinéen (GNF)</option>
+                    <option value="CDF">Franc Congolais (CDF)</option>
+                    <option value="MAD">Dirham Marocain (MAD)</option>
+                    <option value="EUR">Euro (€)</option>
+                    <option value="USD">Dollar Américain ($)</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-success-custom w-100 rounded-pill">Créer mon compte</button>
+        </form>
+        <div class="text-center mt-4">
+            <p class="text-muted mb-0">Déjà un compte ? <a href="{{ url_for('login') }}" class="text-primary-custom fw-bold text-decoration-none">Connectez-vous</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

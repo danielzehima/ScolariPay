@@ -1,7 +1,15 @@
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import MetaData
 from datetime import datetime
 
-db = SQLAlchemy()
+naming_convention = {
+    "ix": 'ix_%(column_0_label)s',
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(column_0_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+db = SQLAlchemy(metadata=MetaData(naming_convention=naming_convention))
 
 class Etablissement(db.Model):
     __tablename__ = 'etablissements'
@@ -55,6 +63,9 @@ class Eleve(db.Model):
     
     # Multi-tenancy: Chaque élève appartient à une école spécifique
     etablissement_id = db.Column(db.Integer, db.ForeignKey('etablissements.id'), nullable=False)
+    
+    # Code d'accès unique pour le Portail Parent
+    code_parent = db.Column(db.String(15), unique=True, nullable=True)
 
 class Paiement(db.Model):
     __tablename__ = 'paiements'
@@ -69,3 +80,7 @@ class Paiement(db.Model):
     
     # Multi-tenancy: Chaque paiement est aussi associé à l'établissement (sécurité supplémentaire)
     etablissement_id = db.Column(db.Integer, db.ForeignKey('etablissements.id'), nullable=False)
+    
+    # Traçabilité (Anti-fraude) : savoir qui a encaissé
+    enregistre_par_id = db.Column(db.Integer, db.ForeignKey('utilisateurs.id'), nullable=True)
+    enregistre_par = db.relationship('Utilisateur', backref='paiements_enregistres')

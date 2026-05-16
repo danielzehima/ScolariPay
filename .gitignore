@@ -1,11 +1,22 @@
-venv/
-env/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-saas_dev.db
+# Environments
 .env
+.venv
+env/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Bases de données
+*.db
+*.sqlite3
+
+# Fichiers générés (PDF, etc.)
+*.pdf
+
+# IDEs
 .vscode/
-.DS_Store
+.idea/
