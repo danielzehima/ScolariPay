@@ -28,6 +28,7 @@ class Etablissement(db.Model):
     classes = db.relationship('Classe', backref='etablissement', lazy=True)
     eleves = db.relationship('Eleve', backref='etablissement', lazy=True)
     paiements = db.relationship('Paiement', backref='etablissement', lazy=True)
+    charges = db.relationship('Charge', backref='etablissement', lazy=True)
 
 class Utilisateur(db.Model):
     __tablename__ = 'utilisateurs'
@@ -84,3 +85,17 @@ class Paiement(db.Model):
     # Traçabilité (Anti-fraude) : savoir qui a encaissé
     enregistre_par_id = db.Column(db.Integer, db.ForeignKey('utilisateurs.id'), nullable=True)
     enregistre_par = db.relationship('Utilisateur', backref='paiements_enregistres')
+
+class Charge(db.Model):
+    __tablename__ = 'charges'
+    id = db.Column(db.Integer, primary_key=True)
+    description = db.Column(db.String(200), nullable=False)
+    montant = db.Column(db.Float, nullable=False, default=0.0)
+    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    eleve_id = db.Column(db.Integer, db.ForeignKey('eleves.id'), nullable=False)
+    eleve = db.relationship('Eleve', backref=db.backref('charges', lazy=True))
+
+    etablissement_id = db.Column(db.Integer, db.ForeignKey('etablissements.id'), nullable=False)
+    enregistre_par_id = db.Column(db.Integer, db.ForeignKey('utilisateurs.id'), nullable=True)
+    enregistre_par = db.relationship('Utilisateur', backref='charges_enregistres')

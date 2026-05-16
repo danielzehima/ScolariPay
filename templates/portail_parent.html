@@ -71,6 +71,9 @@
                             <div class="p-3 bg-light rounded-3">
                                 <p class="text-muted mb-1 small text-uppercase">Total de l'année</p>
                                 <h5 class="fw-bold mb-0">{{ "%.0f"|format(total_du) }} {{ ecole.devise }}</h5>
+                                {% if total_charges > 0 %}
+                                <small class="text-warning">Charges supplémentaires : +{{ "%.0f"|format(total_charges) }} {{ ecole.devise }}</small>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-6">
@@ -99,7 +102,24 @@
                             Aucun versement enregistré pour le moment.
                         </div>
                     {% endif %}
-                    
+
+                    {% if eleve.charges %}
+                    <div class="mt-4">
+                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-file-invoice-dollar me-2 text-warning"></i>Charges appliquées</h6>
+                        <div class="list-group list-group-flush border-top border-bottom">
+                            {% for charge in eleve.charges|sort(attribute='date_creation', reverse=True) %}
+                            <div class="list-group-item px-0 py-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1 fw-bold">{{ charge.description }}</h6>
+                                    <small class="text-muted">{{ charge.date_creation.strftime('%d/%m/%Y') }}</small>
+                                </div>
+                                <span class="badge bg-warning text-dark rounded-pill px-3 py-2">+ {{ "%.0f"|format(charge.montant) }} {{ ecole.devise }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <div class="text-center mt-4">
                         <small class="text-muted">Propulsé par <strong>ScolariPay</strong></small>
                     </div>

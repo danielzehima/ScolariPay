@@ -9,6 +9,7 @@ import io
 from fpdf import FPDF
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
+import stripe
 
 app = Flask(__name__)
 # Clé secrète pour les sessions
@@ -25,6 +26,39 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'contact@scolaripay.com'
 app.config['MAIL_PASSWORD'] = 'motdepasse_smtp'
 app.config['MAIL_DEFAULT_SENDER'] = 'contact@scolaripay.com'
+app.config['SUBSCRIPTION_PRICES'] = {
+    'Mensuel': 50000.0,
+    'Annuel': 500000.0
+}
+app.config['STRIPE_SECRET_KEY'] = os.environ.get('STRIPE_SECRET_KEY', 'sk_test_replace_me')
+app.config['STRIPE_PUBLIC_KEY'] = os.environ.get('STRIPE_PUBLIC_KEY', 'pk_test_replace_me')
+app.config['STRIPE_CURRENCY_MAP'] = {
+    'FCFA': 'usd',
+    'EUR': 'eur',
+    'USD': 'usd',
+    'MAD': 'eur',
+    'CDF': 'usd',
+    'GNF': 'usd'
+}
+app.config['MOBILE_MONEY_PROVIDERS'] = {
+    'Orange Money': {
+        'api_key': os.environ.get('ORANGE_MONEY_API_KEY', 'replace_me'),
+        'merchant_id': os.environ.get('ORANGE_MONEY_MERCHANT_ID', 'replace_me')
+    },
+    'MTN Mobile Money': {
+        'api_key': os.environ.get('MTN_MOBILE_MONEY_API_KEY', 'replace_me'),
+        'merchant_id': os.environ.get('MTN_MOBILE_MONEY_MERCHANT_ID', 'replace_me')
+    },
+    'Wave': {
+        'api_key': os.environ.get('WAVE_API_KEY', 'replace_me'),
+        'merchant_id': os.environ.get('WAVE_MERCHANT_ID', 'replace_me')
+    },
+    'Airtel Money': {
+        'api_key': os.environ.get('AIRTEL_MONEY_API_KEY', 'replace_me'),
+        'merchant_id': os.environ.get('AIRTEL_MONEY_MERCHANT_ID', 'replace_me')
+    }
+}
+app.config['SUPPORTED_MOBILE_MONEY_PROVIDERS'] = ['Orange Money', 'MTN Mobile Money', 'Wave']
 
 db.init_app(app)
 migrate = Migrate(app, db)
@@ -32,6 +66,101 @@ migrate = Migrate(app, db)
 # Ne pas oublier d'importer Mail plus haut si possible, sinon on l'importe ici :
 from flask_mail import Mail, Message
 mail = Mail(app)
+
+def get_subscription_price(type_abonnement):
+    return app.config['SUBSCRIPTION_PRICES'].get(type_abonnement, 0.0)
+
+
+def format_currency(amount):
+    try:
+        return f"{amount:,.0f}".replace(',', ' ')
+    except Exception:
+        return str(amount)
+
+
+def get_stripe_currency(devise):
+    return app.config['STRIPE_CURRENCY_MAP'].get(devise.upper(), 'usd')
+
+
+def get_mobile_money_providers():
+    supported = app.config.get('SUPPORTED_MOBILE_MONEY_PROVIDERS', [])
+    return [provider for provider in supported if provider in app.config['MOBILE_MONEY_PROVIDERS']]
+
+
+def is_mobile_money_provider_supported(provider):
+    return provider in get_mobile_money_providers()
+
+
+def mobile_money_provider_configured(provider):
+    settings = app.config['MOBILE_MONEY_PROVIDERS'].get(provider, {})
+    if not settings:
+        return False
+    for value in settings.values():
+        if not value or 'replace_me' in str(value):
+            return False
+    return True
+
+
+def get_mobile_money_provider_settings(provider):
+    return app.config['MOBILE_MONEY_PROVIDERS'].get(provider, {})
+
+
+def simulate_mobile_money_payment(provider, amount, currency, mobile_number, type_abonnement):
+    reference = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
+    return {
+        'provider': provider,
+        'amount': amount,
+        'currency': currency,
+        'mobile_number': mobile_number,
+        'type_abonnement': type_abonnement,
+        'reference': reference,
+        'status': 'simulated'
+    }
+
+
+def process_mobile_money_payment(provider, amount, currency, mobile_number, type_abonnement):
+    if not is_mobile_money_provider_supported(provider):
+        raise ValueError(f"Le fournisseur Mobile Money '{provider}' n'est pas supporté actuellement.")
+
+    if not mobile_money_provider_configured(provider):
+        raise RuntimeError(f"Les paramètres du fournisseur {provider} ne sont pas configurés.")
+
+    settings = get_mobile_money_provider_settings(provider)
+    # Ici on pourrait construire une requête API générique vers le fournisseur.
+    # Pour l'instant, on simule le paiement de manière générique.
+    simulated = simulate_mobile_money_payment(provider, amount, currency, mobile_number, type_abonnement)
+    simulated['settings_used'] = settings
+    return simulated
+
+
+def mobile_money_configured():
+    return any(mobile_money_provider_configured(provider) for provider in get_mobile_money_providers())
+
+
+def stripe_keys_configured():
+    secret = app.config.get('STRIPE_SECRET_KEY', '')
+    public = app.config.get('STRIPE_PUBLIC_KEY', '')
+    return bool(secret and public and 'replace_me' not in secret and 'replace_me' not in public)
+
+
+def stripe_init():
+    if not stripe_keys_configured():
+        raise RuntimeError('Stripe keys not configured')
+    stripe.api_key = app.config['STRIPE_SECRET_KEY']
+
+
+def renew_subscription(ecole, type_abonnement):
+    reference_date = ecole.date_expiration if ecole.date_expiration and ecole.date_expiration > datetime.utcnow() else datetime.utcnow()
+    if type_abonnement == 'Annuel':
+        ecole.date_expiration = reference_date + timedelta(days=365)
+    else:
+        ecole.date_expiration = reference_date + timedelta(days=30)
+    ecole.type_abonnement = type_abonnement
+    ecole.statut = 'Actif'
+    if ecole.est_demo:
+        ecole.est_demo = False
+    db.session.commit()
+
 
 # ==============================================================================
 # MIDDLEWARE : Vérification de l'Abonnement et du Multi-Tenancy
@@ -85,7 +214,10 @@ def index():
             return redirect(url_for('superadmin_dashboard'))
         else:
             return redirect(url_for('ecole_dashboard'))
-    return render_template('landing.html')
+    return render_template('landing.html',
+                          prix_mensuel=get_subscription_price('Mensuel'),
+                          prix_annuel=get_subscription_price('Annuel'),
+                          devise='FCFA')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -95,17 +227,27 @@ def login():
         
         user = Utilisateur.query.filter_by(email=email).first()
         # Vérification sécurisée du mot de passe
-        if user and check_password_hash(user.mot_de_passe, password):
-            # Initialisation de la session
-            session['user_id'] = user.id
-            session['user_role'] = user.role
-            session['etablissement_id'] = user.etablissement_id
-            
-            if user.role == 'SuperAdmin':
-                return redirect(url_for('superadmin_dashboard'))
+        if user:
+            if check_password_hash(user.mot_de_passe, password):
+                valid_password = True
+            elif user.mot_de_passe == password:
+                # Ancienne valeur en clair : on upgrade vers un hachage sécurisé
+                user.mot_de_passe = generate_password_hash(password)
+                db.session.commit()
+                valid_password = True
             else:
-                return redirect(url_for('ecole_dashboard'))
-                
+                valid_password = False
+
+            if valid_password:
+                session['user_id'] = user.id
+                session['user_role'] = user.role
+                session['etablissement_id'] = user.etablissement_id
+
+                if user.role == 'SuperAdmin':
+                    return redirect(url_for('superadmin_dashboard'))
+                else:
+                    return redirect(url_for('ecole_dashboard'))
+
         flash("Identifiants incorrects.", "danger")
         
     return render_template('login.html')
@@ -313,7 +455,174 @@ def ecole_dashboard():
                            taux_recouvrement=taux_recouvrement,
                            total_attendu=total_attendu,
                            chart_labels=json.dumps(chart_labels),
-                           chart_data=json.dumps(chart_data))
+                           chart_data=json.dumps(chart_data),
+                           prix_abonnement_mensuel=get_subscription_price('Mensuel'),
+                           prix_abonnement_annuel=get_subscription_price('Annuel'),
+                           format_currency=format_currency,
+                           stripe_configured=stripe_keys_configured(),
+                           mobile_money_providers=get_mobile_money_providers(),
+                           mobile_money_configured=mobile_money_configured())
+
+@app.route('/ecole/payment_checkout', methods=['POST'])
+def payment_checkout():
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id:
+        abort(403)
+    if session.get('user_role') != 'Admin':
+        flash("Accès refusé : Seul l'administrateur peut renouveler l'abonnement.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    type_abonnement = request.form.get('type_abonnement')
+    payment_method = request.form.get('payment_method', 'Stripe')
+    mobile_provider = request.form.get('mobile_provider')
+    mobile_number = request.form.get('mobile_number', '').strip()
+
+    if type_abonnement not in ['Mensuel', 'Annuel']:
+        flash("Formule de renouvellement invalide.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    ecole = Etablissement.query.get_or_404(etablissement_id)
+    amount = int(get_subscription_price(type_abonnement) * 100)
+    currency = get_stripe_currency(ecole.devise)
+
+    if payment_method == 'Mobile Money':
+        if not mobile_provider:
+            flash("Veuillez choisir un fournisseur Mobile Money.", "danger")
+            return redirect(url_for('ecole_dashboard'))
+
+        if not mobile_number:
+            flash("Veuillez renseigner le numéro Mobile Money du payeur.", "danger")
+            return redirect(url_for('ecole_dashboard'))
+
+        if not is_mobile_money_provider_supported(mobile_provider):
+            flash(f"Le fournisseur {mobile_provider} n'est pas supporté. Choisissez Orange Money, MTN Mobile Money ou Wave.", "danger")
+            return redirect(url_for('ecole_dashboard'))
+
+        if not mobile_money_provider_configured(mobile_provider):
+            renew_subscription(ecole, type_abonnement)
+            flash(f"Mobile Money ({mobile_provider}) non configuré : abonnement {type_abonnement} simulé localement pour {format_currency(get_subscription_price(type_abonnement))} {ecole.devise}.", "info")
+            return redirect(url_for('ecole_dashboard'))
+
+        try:
+            result = process_mobile_money_payment(mobile_provider, amount, currency, mobile_number, type_abonnement)
+            renew_subscription(ecole, type_abonnement)
+            flash(
+                f"Paiement Mobile Money ({mobile_provider}) simulé : {format_currency(amount/100)} {currency} vers {mobile_number}. Référence {result['reference']}.",
+                "success"
+            )
+        except Exception as e:
+            flash(f"Erreur Mobile Money : {str(e)}", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    # Stripe par défaut
+    if not stripe_keys_configured():
+        renew_subscription(ecole, type_abonnement)
+        flash(f"Stripe non configuré : abonnement {type_abonnement} simulé localement pour {format_currency(get_subscription_price(type_abonnement))} {ecole.devise}.", "info")
+        return redirect(url_for('ecole_dashboard'))
+
+    stripe_init()
+    try:
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': currency,
+                    'product_data': {
+                        'name': f"Renouvellement {type_abonnement}",
+                        'description': f"{type_abonnement} - {format_currency(get_subscription_price(type_abonnement))} {ecole.devise}"
+                    },
+                    'unit_amount': amount
+                },
+                'quantity': 1
+            }],
+            mode='payment',
+            success_url=url_for('stripe_success', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+            cancel_url=url_for('ecole_dashboard', _external=True),
+            metadata={
+                'ecole_id': str(ecole.id),
+                'type_abonnement': type_abonnement
+            }
+        )
+        return redirect(checkout_session.url, code=303)
+    except Exception as e:
+        flash(f"Impossible de démarrer le paiement Stripe : {str(e)}", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+
+@app.route('/ecole/stripe_success')
+def stripe_success():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash("Session Stripe manquante.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    stripe_init()
+    try:
+        stripe_session = stripe.checkout.Session.retrieve(session_id)
+    except Exception as e:
+        flash(f"Impossible de vérifier le paiement Stripe : {str(e)}", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    if stripe_session.payment_status != 'paid':
+        flash("Paiement non confirmé. Veuillez réessayer.", "warning")
+        return redirect(url_for('ecole_dashboard'))
+
+    metadata = stripe_session.metadata or {}
+    if metadata.get('ecole_id') is None:
+        flash("Métadonnées Stripe manquantes.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    ecole = Etablissement.query.get(int(metadata['ecole_id']))
+    if not ecole or ecole.id != session.get('etablissement_id'):
+        abort(403)
+
+    type_abonnement = metadata.get('type_abonnement', 'Mensuel')
+    reference_date = ecole.date_expiration if ecole.date_expiration and ecole.date_expiration > datetime.utcnow() else datetime.utcnow()
+    if type_abonnement == 'Annuel':
+        ecole.date_expiration = reference_date + timedelta(days=365)
+    else:
+        ecole.date_expiration = reference_date + timedelta(days=30)
+
+    ecole.type_abonnement = type_abonnement
+    ecole.statut = 'Actif'
+    if ecole.est_demo:
+        ecole.est_demo = False
+    db.session.commit()
+
+    flash(f"Paiement Stripe confirmé : abonnement {type_abonnement} renouvelé.", "success")
+    return redirect(url_for('ecole_dashboard'))
+
+
+@app.route('/ecole/renouveler_abonnement', methods=['POST'])
+def renouveler_abonnement():
+    etablissement_id = session.get('etablissement_id')
+    if not etablissement_id:
+        abort(403)
+    if session.get('user_role') != 'Admin':
+        flash("Accès refusé : Seul l'administrateur peut renouveler l'abonnement.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    ecole = Etablissement.query.get_or_404(etablissement_id)
+    nouveau_type = request.form.get('type_abonnement')
+    if nouveau_type not in ['Mensuel', 'Annuel']:
+        flash("Type d'abonnement invalide.", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    prix = get_subscription_price(nouveau_type)
+    ecole.type_abonnement = nouveau_type
+    reference_date = ecole.date_expiration if ecole.date_expiration and ecole.date_expiration > datetime.utcnow() else datetime.utcnow()
+    if nouveau_type == 'Annuel':
+        ecole.date_expiration = reference_date + timedelta(days=365)
+    else:
+        ecole.date_expiration = reference_date + timedelta(days=30)
+
+    ecole.statut = 'Actif'
+    if ecole.est_demo:
+        ecole.est_demo = False
+
+    db.session.commit()
+    flash(f"Abonnement renouvelé avec succès pour {'12 mois' if nouveau_type == 'Annuel' else '30 jours'} au tarif de {format_currency(prix)} {ecole.devise}.", "success")
+    return redirect(url_for('ecole_dashboard'))
 
 @app.route('/ecole/export_rapport')
 def export_rapport():
@@ -388,7 +697,7 @@ def demarrer_demo():
     nouvel_admin = Utilisateur(
         nom=f"Directeur {nom}",
         email=email,
-        mot_de_passe=password,
+        mot_de_passe=generate_password_hash(password),
         role='Admin',
         etablissement_id=nouvelle_ecole.id
     )
@@ -414,6 +723,93 @@ def demander_demo():
     flash(f"Merci ! Votre demande pour l'établissement '{nom}' a bien été reçue. Notre équipe vous contactera à {email} rapidement.", "success")
     # Redirection vers la landing page avec ancre
     return redirect(url_for('index') + '#contact')
+
+@app.route('/signup_with_payment', methods=['POST'])
+def signup_with_payment():
+    nom_ecole = request.form.get('nom_ecole', '').strip()
+    email_contact = request.form.get('email_contact', '').strip()
+    plan = request.form.get('plan', 'Mensuel')
+    payment_method = request.form.get('payment_method', 'Stripe')
+    mobile_provider = request.form.get('mobile_provider', '')
+    mobile_number = request.form.get('mobile_number', '').strip()
+
+    if not nom_ecole or not email_contact:
+        flash("Veuillez remplir le nom de l'établissement et l'email.", "danger")
+        return redirect(url_for('index'))
+
+    if plan not in ['Mensuel', 'Annuel']:
+        flash("Plan invalide.", "danger")
+        return redirect(url_for('index'))
+
+    # Vérifier que l'email n'existe pas déjà
+    existing = Etablissement.query.filter_by(email=email_contact).first()
+    if existing:
+        flash("Cet email est déjà utilisé. Veuillez vous connecter.", "info")
+        return redirect(url_for('login'))
+
+    try:
+        # Créer le nouvel établissement
+        nouvelle_ecole = Etablissement(
+            nom=nom_ecole,
+            email=email_contact,
+            type_abonnement=plan,
+            date_expiration=datetime.utcnow() + (timedelta(days=365) if plan == 'Annuel' else timedelta(days=30)),
+            statut='Actif',
+            est_demo=False,
+            date_creation=datetime.utcnow(),
+            devise='FCFA'
+        )
+        db.session.add(nouvelle_ecole)
+        db.session.flush()
+
+        # Générer un mot de passe temporaire
+        temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=12))
+
+        # Créer l'utilisateur administrateur
+        nouvel_admin = Utilisateur(
+            nom=f"Directeur de {nom_ecole}",
+            email=email_contact,
+            mot_de_passe=generate_password_hash(temp_password),
+            role='Admin',
+            etablissement_id=nouvelle_ecole.id
+        )
+        db.session.add(nouvel_admin)
+        db.session.commit()
+
+        # Créer la session
+        session['user_id'] = nouvel_admin.id
+        session['user_role'] = nouvel_admin.role
+        session['etablissement_id'] = nouvelle_ecole.id
+
+        # Afficher les détails du paiement
+        if payment_method == 'Mobile Money':
+            if not is_mobile_money_provider_supported(mobile_provider):
+                flash(f"Le fournisseur {mobile_provider} n'est pas supporté.", "danger")
+                return redirect(url_for('ecole_dashboard'))
+
+            if not mobile_money_provider_configured(mobile_provider):
+                flash(f"Inscription créée ! Mobile Money ({mobile_provider}) n'est pas configuré - paiement simulé localement.", "info")
+            else:
+                try:
+                    amount = int(get_subscription_price(plan) * 100)
+                    currency = get_stripe_currency(nouvelle_ecole.devise)
+                    result = process_mobile_money_payment(mobile_provider, amount, currency, mobile_number, plan)
+                    flash(f"Inscription créée ! Paiement Mobile Money ({mobile_provider}) traité : Référence {result['reference']}.", "success")
+                except Exception as e:
+                    flash(f"Inscription créée ! Erreur Mobile Money : {str(e)}", "warning")
+        else:
+            # Stripe
+            if not stripe_keys_configured():
+                flash(f"Inscription créée ! Stripe n'est pas configuré - paiement simulé localement.", "info")
+            else:
+                flash(f"Inscription créée ! Vous pouvez à présent renouveler votre abonnement via Stripe.", "success")
+
+        return redirect(url_for('ecole_dashboard'))
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Erreur lors de la création du compte : {str(e)}", "danger")
+        return redirect(url_for('index'))
 
 @app.route('/ecole/ajouter_classe', methods=['POST'])
 def ajouter_classe():
@@ -668,7 +1064,7 @@ if __name__ == '__main__':
             superadmin = Utilisateur(
                 nom='Super Admin', 
                 email='admin@saas.com', 
-                mot_de_passe='admin', # À changer
+                mot_de_passe=generate_password_hash('admin'),
                 role='SuperAdmin'
             )
             db.session.add(superadmin)
