@@ -1,5 +1,5 @@
 from flask import Flask, request, redirect, url_for, session, flash, abort, render_template, send_file
-from models import db, Etablissement, Utilisateur, Eleve, Paiement, Classe
+from models import db, Etablissement, Utilisateur, Eleve, Paiement, Classe, Charge
 from datetime import datetime, timedelta
 import os
 import random
@@ -309,7 +309,39 @@ def superadmin_dashboard():
         abort(403) # Interdit
         
     etablissements = Etablissement.query.all()
-    return render_template('superadmin_dashboard.html', etablissements=etablissements)
+    
+    # Statistiques
+    total_mensuel = sum(1 for e in etablissements if e.type_abonnement == 'Mensuel' and e.statut == 'Actif')
+    total_annuel = sum(1 for e in etablissements if e.type_abonnement == 'Annuel' and e.statut == 'Actif')
+    
+    # Notifications (expiration dans <= 7 jours ou déjà expiré)
+    aujourdhui = datetime.utcnow()
+    limite_notification = aujourdhui + timedelta(days=7)
+    ecoles_a_terme = [e for e in etablissements if e.date_expiration <= limite_notification]
+    
+    # Chart (évolution des abonnés actifs créés récemment)
+    chart_labels = []
+    chart_data = []
+    import json
+    dict_ecoles = { (aujourdhui - timedelta(days=i)).date(): 0 for i in range(6, -1, -1)}
+    
+    for e in etablissements:
+        if e.statut == 'Actif' and e.date_creation:
+            date_c = e.date_creation.date()
+            if date_c in dict_ecoles:
+                dict_ecoles[date_c] += 1
+                
+    for date_jour, count in dict_ecoles.items():
+        chart_labels.append(date_jour.strftime('%d/%m'))
+        chart_data.append(count)
+
+    return render_template('superadmin_dashboard.html', 
+                           etablissements=etablissements,
+                           total_mensuel=total_mensuel,
+                           total_annuel=total_annuel,
+                           ecoles_a_terme=ecoles_a_terme,
+                           chart_labels=json.dumps(chart_labels),
+                           chart_data=json.dumps(chart_data))
 
 @app.route('/superadmin/ajouter_ecole', methods=['POST'])
 def ajouter_ecole():
@@ -377,6 +409,27 @@ def editer_ecole(id):
     db.session.commit()
     
     flash(f"L'école {ecole.nom} a été mise à jour.", "success")
+    return redirect(url_for('superadmin_dashboard'))
+
+@app.route('/superadmin/supprimer_ecole/<int:id>', methods=['POST'])
+def supprimer_ecole(id):
+    if session.get('user_role') != 'SuperAdmin':
+        abort(403)
+        
+    ecole = Etablissement.query.get_or_404(id)
+    nom_ecole = ecole.nom
+    
+    # Suppression en cascade manuelle
+    Paiement.query.filter_by(etablissement_id=ecole.id).delete()
+    Charge.query.filter_by(etablissement_id=ecole.id).delete()
+    Eleve.query.filter_by(etablissement_id=ecole.id).delete()
+    Classe.query.filter_by(etablissement_id=ecole.id).delete()
+    Utilisateur.query.filter_by(etablissement_id=ecole.id).delete()
+    
+    db.session.delete(ecole)
+    db.session.commit()
+    
+    flash(f"L'école {nom_ecole} a été définitivement supprimée.", "success")
     return redirect(url_for('superadmin_dashboard'))
 
 @app.route('/ecole')

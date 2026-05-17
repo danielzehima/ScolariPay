@@ -2,69 +2,264 @@
 
 {% block title %}Dashboard SuperAdmin{% endblock %}
 
-{% block content %}
-<div class="row mb-4 align-items-center">
-    <div class="col">
-        <h2 class="fw-bold mb-0">Administration SaaS</h2>
-        <p class="text-muted mt-1">Gérez vos écoles clientes et leurs abonnements.</p>
-    </div>
-    <div class="col-auto">
-        <button class="btn btn-primary shadow-sm rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#addEcoleModal">+ Nouvelle École</button>
-    </div>
-</div>
+{% block extra_css %}
+<style>
+    .container {
+        max-width: 100% !important;
+        padding: 0 2rem;
+    }
+    .sidebar {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+        padding: 1.5rem 1rem;
+        min-height: 80vh;
+    }
+    .sidebar .nav-link {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        border-radius: 10px;
+        transition: all 0.3s;
+        padding: 0.75rem 1rem;
+    }
+    .sidebar .nav-link:hover {
+        background: #f8f9fa;
+        color: #0d6efd;
+    }
+    .sidebar .nav-link.active {
+        background: #0d6efd;
+        color: white;
+        box-shadow: 0 4px 15px rgba(13, 110, 253, 0.2);
+    }
+    .chart-container {
+        position: relative;
+        height: 350px;
+        width: 100%;
+    }
+    .search-bar-container {
+        min-width: 250px;
+    }
+</style>
+{% endblock %}
 
-<div class="card glass-card border-0">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th class="ps-4">ID</th>
-                        <th>Nom de l'École</th>
-                        <th>Email</th>
-                        <th>Abonnement</th>
-                        <th>Expiration</th>
-                        <th>Statut</th>
-                        <th>Devise</th>
-                        <th class="pe-4 text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for ecole in etablissements %}
-                    <tr>
-                        <td class="ps-4 text-muted">#{{ ecole.id }}</td>
-                        <td class="fw-bold text-dark">{{ ecole.nom }}</td>
-                        <td class="text-muted">{{ ecole.email }}</td>
-                        <td>
-                            <span class="badge rounded-pill {% if ecole.type_abonnement == 'Annuel' %}bg-primary{% else %}bg-info{% endif %} bg-opacity-75">
-                                {{ ecole.type_abonnement }}
-                            </span>
-                        </td>
-                        <td>
-                            <span class="text-muted">{{ ecole.date_expiration.strftime('%d/%m/%Y') }}</span>
-                        </td>
-                        <td>
-                            {% if ecole.statut == 'Actif' %}
-                                <span class="badge bg-success rounded-pill px-3 py-2">Actif</span>
-                            {% else %}
-                                <span class="badge bg-danger rounded-pill px-3 py-2">Suspendu</span>
-                            {% endif %}
-                        </td>
-                        <td><span class="badge bg-secondary rounded-pill">{{ ecole.devise }}</span></td>
-                        <td class="pe-4 text-end">
-                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editEcoleModal" data-id="{{ ecole.id }}" data-nom="{{ ecole.nom }}" data-statut="{{ ecole.statut }}" data-type="{{ ecole.type_abonnement }}" data-devise="{{ ecole.devise }}">Éditer</button>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="7" class="text-center text-muted py-5">
-                            <h5 class="fw-light">Aucune école cliente pour le moment.</h5>
-                            <p class="mb-0">Cliquez sur "+ Nouvelle École" pour commencer.</p>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+{% block content %}
+<div class="row">
+    <!-- Sidebar -->
+    <div class="col-md-3 col-lg-2 mb-4">
+        <div class="sidebar sticky-top" style="top: 1rem;">
+            <div class="text-center mb-4">
+                <h5 class="fw-bold text-primary mb-0">SuperAdmin</h5>
+                <small class="text-muted">Gestion SaaS</small>
+            </div>
+            <ul class="nav flex-column nav-pills" id="admin-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link w-100 text-start active" id="dashboard-tab" data-bs-toggle="pill" data-bs-target="#dashboard" type="button" role="tab">
+                        📊 Vue d'ensemble
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link w-100 text-start" id="ecoles-tab" data-bs-toggle="pill" data-bs-target="#ecoles" type="button" role="tab">
+                        🏫 Écoles
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link w-100 text-start d-flex justify-content-between align-items-center" id="notifications-tab" data-bs-toggle="pill" data-bs-target="#notifications" type="button" role="tab">
+                        <span>🔔 Notifications</span>
+                        {% if ecoles_a_terme|length > 0 %}
+                        <span class="badge bg-danger rounded-pill">{{ ecoles_a_terme|length }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9 col-lg-10">
+        <div class="tab-content" id="admin-tabsContent">
+            
+            <!-- Tab: Dashboard -->
+            <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 class="fw-bold mb-0">Tableau de Bord</h2>
+                        <p class="text-muted mt-1 mb-0">Aperçu global de l'activité SaaS.</p>
+                    </div>
+                </div>
+                
+                <!-- Statistiques -->
+                <div class="row g-4 mb-4">
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card glass-card border-0 h-100">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="flex-shrink-0 bg-info bg-opacity-10 p-3 rounded-circle text-info me-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-calendar-check" viewBox="0 0 16 16"><path d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"/><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted fw-bold mb-1">Abonnés Mensuels Actifs</h6>
+                                    <h3 class="text-dark fw-bold mb-0">{{ total_mensuel }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card glass-card border-0 h-100">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="flex-shrink-0 bg-primary bg-opacity-10 p-3 rounded-circle text-primary me-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-calendar2-star" viewBox="0 0 16 16"><path d="M2.868 15.287l9.146 5.925a.5.5 0 0 0 .771-.56l-3.488-10.74 9.147-5.926a.5.5 0 0 0-.288-.91H7.412L3.923 1.135a.5.5 0 0 0-.952 0L-.48 8.182H-11.23a.5.5 0 0 0-.288.91l9.147 5.925-3.488 10.74a.5.5 0 0 0 .771.56z"/></svg>
+                                </div>
+                                <div>
+                                    <h6 class="text-muted fw-bold mb-1">Abonnés Annuels Actifs</h6>
+                                    <h3 class="text-dark fw-bold mb-0">{{ total_annuel }}</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card glass-card border-0 h-100 bg-primary text-white">
+                            <div class="card-body">
+                                <h6 class="fw-bold mb-1 opacity-75">Total Écoles Enregistrées</h6>
+                                <h3 class="fw-bold mb-0">{{ etablissements|length }}</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Chart -->
+                <div class="card glass-card border-0 shadow-sm">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4">Évolution des Inscriptions (7 derniers jours)</h5>
+                        <div class="chart-container">
+                            <canvas id="activeSubscribersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Ecoles -->
+            <div class="tab-pane fade" id="ecoles" role="tabpanel">
+                <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+                    <div>
+                        <h2 class="fw-bold mb-0">Gestion des Écoles</h2>
+                    </div>
+                    <div class="d-flex gap-2 align-items-center">
+                        <div class="search-bar-container">
+                            <input type="text" id="searchEcoleInput" class="form-control rounded-pill shadow-sm" placeholder="🔍 Rechercher une école...">
+                        </div>
+                        <button class="btn btn-primary shadow-sm rounded-pill px-4 text-nowrap" data-bs-toggle="modal" data-bs-target="#addEcoleModal">+ Nouvelle École</button>
+                    </div>
+                </div>
+                
+                <div class="card glass-card border-0 shadow-sm">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="ecolesTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-4">ID</th>
+                                        <th>Nom de l'École</th>
+                                        <th>Email</th>
+                                        <th>Abonnement</th>
+                                        <th>Expiration</th>
+                                        <th>Statut</th>
+                                        <th class="pe-4 text-end">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for ecole in etablissements %}
+                                    <tr class="ecole-row">
+                                        <td class="ps-4 text-muted">#{{ ecole.id }}</td>
+                                        <td class="fw-bold text-dark ecole-nom">{{ ecole.nom }}</td>
+                                        <td class="text-muted ecole-email">{{ ecole.email }}</td>
+                                        <td>
+                                            <span class="badge rounded-pill {% if ecole.type_abonnement == 'Annuel' %}bg-primary{% else %}bg-info{% endif %} bg-opacity-75">
+                                                {{ ecole.type_abonnement }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">{{ ecole.date_expiration.strftime('%d/%m/%Y') }}</span>
+                                        </td>
+                                        <td>
+                                            {% if ecole.statut == 'Actif' %}
+                                                <span class="badge bg-success rounded-pill px-3 py-2">Actif</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary rounded-pill px-3 py-2">Suspendu</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="pe-4 text-end">
+                                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 me-1" data-bs-toggle="modal" data-bs-target="#editEcoleModal" data-id="{{ ecole.id }}" data-nom="{{ ecole.nom }}" data-statut="{{ ecole.statut }}" data-type="{{ ecole.type_abonnement }}" data-devise="{{ ecole.devise }}">Éditer</button>
+                                            
+                                            <form action="{{ url_for('supprimer_ecole', id=ecole.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer {{ ecole.nom }} DÉFINITIVEMENT ? Toutes ses données seront effacées.');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3">Supprimer</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr id="noEcolesRow">
+                                        <td colspan="7" class="text-center text-muted py-5">
+                                            <h5 class="fw-light">Aucune école cliente pour le moment.</h5>
+                                            <p class="mb-0">Cliquez sur "+ Nouvelle École" pour commencer.</p>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    <tr id="noSearchResult" style="display: none;">
+                                        <td colspan="7" class="text-center text-muted py-5">
+                                            <h5 class="fw-light">Aucune école ne correspond à votre recherche.</h5>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Notifications -->
+            <div class="tab-pane fade" id="notifications" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold mb-0">Notifications & Alertes</h2>
+                </div>
+                
+                {% if ecoles_a_terme %}
+                    <div class="row g-4">
+                        {% for ecole in ecoles_a_terme %}
+                        <div class="col-md-6">
+                            <div class="card border-0 shadow-sm border-start border-danger border-4">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between">
+                                        <h5 class="fw-bold mb-1">{{ ecole.nom }}</h5>
+                                        <span class="badge bg-danger rounded-pill">À terme</span>
+                                    </div>
+                                    <p class="text-muted mb-3"><small>{{ ecole.email }}</small></p>
+                                    <p class="mb-0">
+                                        L'abonnement <strong>{{ ecole.type_abonnement }}</strong> expire le : <br>
+                                        <span class="text-danger fw-bold">{{ ecole.date_expiration.strftime('%d/%m/%Y à %H:%M') }}</span>
+                                    </p>
+                                </div>
+                                <div class="card-footer bg-white border-top-0 pt-0">
+                                    <button class="btn btn-sm btn-outline-primary rounded-pill w-100" data-bs-toggle="modal" data-bs-target="#editEcoleModal" data-id="{{ ecole.id }}" data-nom="{{ ecole.nom }}" data-statut="{{ ecole.statut }}" data-type="{{ ecole.type_abonnement }}" data-devise="{{ ecole.devise }}">Mettre à jour l'abonnement</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="card glass-card border-0 py-5">
+                        <div class="card-body text-center text-muted">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="bi bi-check-circle text-success mb-3" viewBox="0 0 16 16">
+                              <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                              <path d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"/>
+                            </svg>
+                            <h5>Aucune alerte</h5>
+                            <p>Toutes les écoles ont un abonnement valide.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
         </div>
     </div>
 </div>
@@ -170,8 +365,12 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        // Logique Modal Edition
         var editEcoleModal = document.getElementById('editEcoleModal')
         if (editEcoleModal) {
             editEcoleModal.addEventListener('show.bs.modal', function (event) {
@@ -191,6 +390,75 @@
                 editEcoleModal.querySelector('#editDevise').value = devise
             })
         }
-    })
+
+        // Logique Recherche
+        const searchInput = document.getElementById('searchEcoleInput');
+        const ecoleRows = document.querySelectorAll('.ecole-row');
+        const noSearchResult = document.getElementById('noSearchResult');
+        const noEcolesRow = document.getElementById('noEcolesRow');
+
+        if(searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const term = e.target.value.toLowerCase();
+                let hasVisibleRow = false;
+
+                ecoleRows.forEach(row => {
+                    const nom = row.querySelector('.ecole-nom').textContent.toLowerCase();
+                    const email = row.querySelector('.ecole-email').textContent.toLowerCase();
+                    
+                    if(nom.includes(term) || email.includes(term)) {
+                        row.style.display = '';
+                        hasVisibleRow = true;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+
+                if(!hasVisibleRow && ecoleRows.length > 0) {
+                    noSearchResult.style.display = '';
+                } else {
+                    noSearchResult.style.display = 'none';
+                }
+            });
+        }
+
+        // Initialisation Graphique
+        var ctx = document.getElementById('activeSubscribersChart');
+        if (ctx) {
+            var labels = JSON.parse('{{ chart_labels|safe }}');
+            var data = JSON.parse('{{ chart_data|safe }}');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Nouvelles inscriptions (7 derniers jours)',
+                        data: data,
+                        borderColor: '#0d6efd',
+                        backgroundColor: 'rgba(13, 110, 253, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
 </script>
 {% endblock %}

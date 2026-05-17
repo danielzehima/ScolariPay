@@ -1,716 +1,843 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>ScolariPay — Paiement des frais scolaires simplifié</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ScolariPay - Plateforme SaaS de Gestion Scolaire Moderne</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <!-- AOS Animation -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      :root {
-        --navy: #0B1F3A;
-        --navy-mid: #122B52;
-        --navy-light: #1E3D6B;
-        --gold: #F5A623;
-        --gold-light: #FBBF50;
-        --jade: #00C896;
-        --cream: #FAFAF7;
-        --white: #FFFFFF;
-        --text-dark: #0B1F3A;
-        --text-muted: #7A8CA5;
-        --border: #E2E8F0;
-        --radius: 24px;
-      }
-      html { scroll-behavior: smooth; }
-      body {
-        font-family: 'DM Sans', sans-serif;
-        background: var(--cream);
-        color: var(--text-dark);
-        line-height: 1.7;
-        overflow-x: hidden;
-      }
-      body::before {
-        content: '';
-        position: fixed;
-        inset: 0;
-        background: radial-gradient(circle at 20% 20%, rgba(245,166,35,0.12), transparent 22%),
-                    radial-gradient(circle at 80% 10%, rgba(0,200,150,0.08), transparent 20%);
-        pointer-events: none;
-        z-index: -1;
-      }
-      nav {
-        position: sticky;
-        top: 0;
-        width: 100%;
-        z-index: 100;
-        background: rgba(255,255,255,0.95);
-        backdrop-filter: blur(12px);
-        border-bottom: 1px solid rgba(11,31,58,0.08);
-      }
-      .nav-inner {
-        max-width: 1180px;
-        margin: 0 auto;
-        padding: 20px 28px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 24px;
-      }
-      .nav-logo {
-        display: inline-flex;
-        align-items: center;
-        gap: 12px;
-        font-family: 'Playfair Display', serif;
-        font-size: 24px;
-        font-weight: 900;
-        color: var(--navy);
-      }
-      .nav-logo .logo-mark {
-        width: 40px;
-        height: 40px;
-        border-radius: 14px;
-        background: var(--gold);
-        display: grid;
-        place-items: center;
-        color: var(--navy);
-        font-weight: 900;
-      }
-      .nav-links {
-        display: flex;
-        align-items: center;
-        gap: 30px;
-        flex-wrap: wrap;
-      }
-      .nav-links a {
-        text-decoration: none;
-        color: var(--text-muted);
-        font-size: 0.95rem;
-        font-weight: 500;
-        transition: color 0.2s ease;
-      }
-      .nav-links a:hover { color: var(--navy); }
-      .nav-cta {
-        background: var(--gold);
-        color: #000 !important;
-        border-radius: 999px;
-        padding: 11px 24px;
-        font-weight: 700;
-        font-size: 0.95rem;
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-      }
-      .hero {
-        min-height: calc(100vh - 90px);
-        padding: 100px 28px 80px;
-        max-width: 1180px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1.05fr 0.95fr;
-        gap: 48px;
-        align-items: center;
-        background: var(--navy);
-        border-radius: 40px;
-        color: var(--white);
-      }
-      .hero-copy {
-        max-width: 620px;
-      }
-      .hero-badge {
-        display: inline-flex;
-        gap: 10px;
-        align-items: center;
-        background: rgba(245,166,35,0.12);
-        border: 1px solid rgba(245,166,35,0.25);
-        padding: 10px 18px;
-        color: var(--gold);
-        border-radius: 999px;
-        font-size: 0.92rem;
-        margin-bottom: 28px;
-        font-weight: 600;
-      }
-      .hero-badge .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--jade);
-      }
-      .hero h1 {
-        font-family: 'Playfair Display', serif;
-        font-size: clamp(3.4rem, 5vw, 5.5rem);
-        line-height: 0.98;
-        font-weight: 900;
-        color: var(--white);
-        margin-bottom: 26px;
-      }
-      .hero h1 em {
-        font-style: normal;
-        color: var(--gold);
-      }
-      .hero p {
-        font-size: 1.1rem;
-        color: rgba(255,255,255,0.78);
-        max-width: 540px;
-        margin-bottom: 34px;
-      }
-      .hero-actions {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        flex-wrap: wrap;
-        margin-bottom: 40px;
-      }
-      .btn-primary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 16px 30px;
-        border-radius: 999px;
-        border: none;
-        background: var(--gold);
-        color: var(--navy);
-        font-weight: 700;
-        text-decoration: none;
-        font-size: 0.98rem;
-        box-shadow: 0 12px 28px rgba(245,166,35,0.22);
-      }
-      .btn-primary:hover { transform: translateY(-2px); background: var(--gold-light); }
-      .btn-secondary {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        padding: 16px 30px;
-        border-radius: 999px;
-        border: 1px solid rgba(11,31,58,0.12);
-        background: rgba(255,255,255,0.9);
-        color: var(--navy);
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 0.98rem;
-      }
-      .btn-secondary:hover { background: rgba(255,255,255,1); }
-      .hero-trust {
-        display: flex;
-        align-items: center;
-        gap: 18px;
-        flex-wrap: wrap;
-      }
-      .trust-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        padding: 14px 18px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.1);
-        color: rgba(255,255,255,0.9);
-        border: 1px solid rgba(255,255,255,0.15);
-        font-size: 0.95rem;
-      }
-      .hero-visual {
-        display: grid;
-        gap: 22px;
-      }
-      .payment-card {
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 32px;
-        padding: 28px;
-        color: var(--white);
-        backdrop-filter: blur(18px);
-      }
-      .payment-card h3 {
-        font-size: 1rem;
-        color: rgba(255,255,255,0.8);
-        margin-bottom: 12px;
-      }
-      .amount {
-        font-size: 2rem;
-        font-weight: 900;
-        color: var(--white);
-      }
-      .payment-line {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid rgba(255,255,255,0.12);
-      }
-      .payment-line span:first-child { color: rgba(255,255,255,0.75); }
-      .payment-summary {
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 24px;
-        padding: 24px;
-      }
-      .payment-summary strong { color: var(--white); }
-      .stats-grid {
-        display: grid;
-        gap: 16px;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        margin-top: 40px;
-      }
-      .stat-pill {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        padding: 18px 20px;
-        border-radius: 20px;
-        background: rgba(255,255,255,0.12);
-        color: var(--white);
-      }
-      .stat-pill span {
-        font-size: 1.35rem;
-      }
-      section { padding: 90px 28px; }
-      .section-inner { max-width: 1180px; margin: 0 auto; }
-      .section-title {
-        max-width: 720px;
-        margin: 0 auto 40px;
-        text-align: center;
-      }
-      .section-title h2 {
-        font-size: clamp(2.1rem, 2.6vw, 3rem);
-        line-height: 1.05;
-        font-weight: 900;
-        color: var(--navy);
-      }
-      .section-title p {
-        color: var(--text-muted);
-        margin-top: 18px;
-        font-size: 1rem;
-      }
-      .feature-grid {
-        display: grid;
-        gap: 22px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-      .feature-card {
-        background: var(--white);
-        border: 1px solid #E8EDF4;
-        border-radius: 24px;
-        padding: 28px;
-        min-height: 240px;
-        box-shadow: 0 12px 30px rgba(15,31,58,0.05);
-      }
-      .feature-card h3 {
-        margin-top: 20px;
-        font-size: 1.1rem;
-        color: var(--navy);
-      }
-      .feature-card p { margin-top: 14px; color: var(--text-muted); }
-      .feature-icon {
-        width: 52px;
-        height: 52px;
-        border-radius: 18px;
-        display: grid;
-        place-items: center;
-        background: rgba(245,166,35,0.12);
-        color: var(--gold);
-        font-size: 1.35rem;
-      }
-      .highlight-grid {
-        display: grid;
-        gap: 22px;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-      }
-      .highlight-pill {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-        background: var(--white);
-        border-radius: 20px;
-        padding: 22px;
-        border: 1px solid #E8EDF4;
-      }
-      .highlight-pill span {
-        display: inline-flex;
-        width: 44px;
-        height: 44px;
-        border-radius: 16px;
-        align-items: center;
-        justify-content: center;
-        background: rgba(11,31,58,0.06);
-        color: var(--navy);
-        font-size: 1.1rem;
-      }
-      .highlight-pill div p { font-weight: 700; color: var(--navy); margin-bottom: 6px; }
-      .highlight-pill div small { color: var(--text-muted); font-size: 0.95rem; }
-      .pricing-grid {
-        display: grid;
-        gap: 28px;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-      }
-      .pricing-card {
-        background: var(--white);
-        border-radius: 32px;
-        border: 1px solid #E8EDF4;
-        padding: 36px;
-        box-shadow: 0 18px 50px rgba(11,31,58,0.06);
-        position: relative;
-        min-height: 520px;
-      }
-      .pricing-card.popular { border-color: rgba(0,200,150,0.25); }
-      .pricing-card.popular::before {
-        content: 'Le plus populaire';
-        position: absolute;
-        top: -14px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 10px 18px;
-        border-radius: 999px;
-        background: rgba(0,200,150,0.12);
-        color: var(--navy);
-        font-size: 0.88rem;
-        font-weight: 700;
-      }
-      .pricing-card h3 { font-size: 1.75rem; margin-bottom: 18px; }
-      .pricing-price { font-size: 3rem; font-weight: 900; margin-bottom: 12px; }
-      .pricing-subtitle { color: var(--text-muted); margin-bottom: 24px; }
-      .pricing-list { list-style: none; margin-top: 24px; padding: 0; display: grid; gap: 16px; }
-      .pricing-list li { display: flex; align-items: flex-start; gap: 12px; font-size: 0.98rem; color: var(--text-muted); }
-      .pricing-list li::before { content: '✓'; color: var(--jade); font-weight: 700; line-height: 1.2; }
-      .pricing-card .btn {
-        margin-top: 26px;
-        width: 100%;
-      }
-      .cta-section {
-        background: var(--navy);
-        color: var(--white);
-        padding: 80px 28px;
-      }
-      .cta-inner {
-        max-width: 1080px;
-        margin: 0 auto;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
-        align-items: center;
-      }
-      .cta-inner h2 { font-size: clamp(2.5rem, 3.2vw, 3.6rem); line-height: 1.03; margin-bottom: 20px; }
-      .cta-inner p { color: rgba(255,255,255,0.8); font-size: 1.05rem; margin-bottom: 0; }
-      .cta-inner .btn { width: fit-content; }
-      .footer {
-        padding: 32px 28px;
-        text-align: center;
-        color: var(--text-muted);
-      }
-      .footer a { color: var(--navy); text-decoration: none; font-weight: 700; }
-      .modal-backdrop { background: rgba(11,31,58,0.75); }
-      .form-card {
-        background: var(--white);
-        border-radius: 28px;
-        box-shadow: 0 20px 55px rgba(11,31,58,0.12);
-        padding: 32px;
-      }
-      .form-card h4 { font-size: 1.45rem; margin-bottom: 22px; }
-      .form-card label { display: block; margin-bottom: 10px; font-weight: 700; color: var(--navy); }
-      .form-card input, .form-card select {
-        width: 100%;
-        padding: 14px 16px;
-        border: 1px solid #E8EDF4;
-        border-radius: 16px;
-        font-size: 0.95rem;
-        color: var(--navy);
-        background: #F8FAFB;
-        margin-bottom: 18px;
-      }
-      .form-card .plan-summary {
-        background: rgba(11,31,58,0.03);
-        border: 1px solid #E8EDF4;
-        border-radius: 20px;
-        padding: 22px;
-        margin-bottom: 24px;
-      }
-      .plan-summary h5 { margin-bottom: 10px; font-size: 1rem; color: var(--text-muted); }
-      .plan-summary p { margin: 0; font-size: 1.1rem; font-weight: 700; }
-      .provider-grid { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 16px; }
-      .provider-card {
-        border: 1px solid #E8EDF4;
-        border-radius: 18px;
-        padding: 18px;
-        text-align: center;
-        cursor: pointer;
-        transition: border-color 0.2s ease, transform 0.2s ease;
-      }
-      .provider-card.selected { border-color: var(--gold); transform: translateY(-2px); }
-      .provider-card img { max-height: 50px; object-fit: contain; margin-bottom: 12px; }
-      .provider-card span { display: block; font-size: 0.95rem; font-weight: 700; color: var(--navy); }
-      .mobile-section { display: none; }
-      .mobile-section.active { display: block; }
-      @media (max-width: 1080px) {
-        .hero { grid-template-columns: 1fr; padding-top: 120px; }
-        .hero-visual { order: -1; }
-        .cta-inner { grid-template-columns: 1fr; text-align: center; }
-      }
-      @media (max-width: 840px) {
-        .nav-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
-        .hero { padding: 90px 20px 70px; gap: 30px; }
-        section { padding: 70px 20px; }
-        .feature-grid, .highlight-grid, .pricing-grid { grid-template-columns: 1fr; }
-        .provider-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); }
-      }
-      @keyframes fadeUp {
-        from { opacity: 0; transform: translateY(18px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
+        :root {
+            --primary-dark: #0A1128;
+            --primary-blue: #1C3144;
+            --accent-orange: #F3722C;
+            --accent-green: #43AA8B;
+            --text-muted: #A0AEC0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            scroll-behavior: smooth;
+            background-color: #F8F9FA;
+            color: #2D3748;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Navbar */
+        .navbar-custom {
+            background-color: rgba(10, 17, 40, 0.8) !important;
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.3s ease;
+        }
+        
+        .navbar-custom .nav-link {
+            color: rgba(255,255,255,0.8) !important;
+            font-weight: 500;
+            font-size: 0.95rem;
+            margin: 0 10px;
+            transition: color 0.3s ease;
+        }
+
+        .navbar-custom .nav-link:hover {
+            color: var(--accent-orange) !important;
+        }
+
+        /* Buttons */
+        .btn-orange {
+            background: linear-gradient(135deg, var(--accent-orange), #f48c54);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(243, 114, 44, 0.3);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            padding: 12px 28px;
+        }
+        .btn-orange:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(243, 114, 44, 0.4);
+            color: white;
+        }
+
+        .btn-glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 600;
+            padding: 12px 28px;
+        }
+        .btn-glass:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero-section {
+            background: radial-gradient(circle at 80% 20%, #1C3144 0%, #0A1128 70%);
+            color: white;
+            padding: 150px 0 100px 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .glow-orb-1 {
+            position: absolute;
+            top: -100px;
+            right: 0;
+            width: 500px;
+            height: 500px;
+            background: var(--accent-orange);
+            filter: blur(200px);
+            opacity: 0.15;
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .glow-orb-2 {
+            position: absolute;
+            bottom: -100px;
+            left: -100px;
+            width: 400px;
+            height: 400px;
+            background: var(--accent-green);
+            filter: blur(150px);
+            opacity: 0.15;
+            border-radius: 50%;
+            z-index: 0;
+        }
+
+        .hero-title {
+            font-size: 4rem;
+            font-weight: 800;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #FFFFFF, #E2E8F0);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            z-index: 1;
+            position: relative;
+        }
+        
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: #CBD5E1;
+            margin-bottom: 2.5rem;
+            font-weight: 400;
+            line-height: 1.6;
+            z-index: 1;
+            position: relative;
+        }
+
+        .mockup-wrapper {
+            position: relative;
+            z-index: 2;
+            transform: perspective(1000px) rotateY(-8deg) rotateX(5deg);
+            transition: transform 0.6s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .mockup-wrapper:hover {
+            transform: perspective(1000px) rotateY(0deg) rotateX(0deg) scale(1.02);
+        }
+        
+        .mockup-glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            padding: 12px;
+        }
+
+        .mockup-image {
+            border-radius: 12px;
+            width: 100%;
+            height: auto;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Payment Logos */
+        .payment-logos {
+            background: white;
+            padding: 30px 0;
+            border-bottom: 1px solid #E2E8F0;
+        }
+        
+        .payment-logo {
+            height: 35px;
+            filter: grayscale(100%) opacity(0.5);
+            transition: all 0.3s ease;
+            margin: 0 25px;
+            object-fit: contain;
+        }
+        .payment-logo:hover {
+            filter: grayscale(0%) opacity(1);
+        }
+
+        /* Features */
+        .section-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--primary-dark);
+        }
+
+        .feature-card {
+            background: white;
+            border-radius: 24px;
+            padding: 40px 30px;
+            height: 100%;
+            border: 1px solid rgba(0,0,0,0.05);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+            transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(243, 114, 44, 0.03), rgba(67, 170, 139, 0.03));
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: -1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+            border-color: rgba(67, 170, 139, 0.2);
+        }
+
+        .feature-card:hover::after {
+            opacity: 1;
+        }
+
+        .icon-box {
+            width: 65px;
+            height: 65px;
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 26px;
+            margin-bottom: 25px;
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover .icon-box {
+            transform: scale(1.1) rotate(5deg);
+        }
+
+        .icon-orange { background: rgba(243, 114, 44, 0.1); color: var(--accent-orange); }
+        .icon-green { background: rgba(67, 170, 139, 0.1); color: var(--accent-green); }
+        .icon-blue { background: rgba(28, 49, 68, 0.1); color: var(--primary-blue); }
+
+        /* Social Proof / Stats */
+        .stats-section {
+            background: var(--primary-dark);
+            color: white;
+            padding: 80px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-number {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        /* Pricing */
+        .pricing-section {
+            background: #F8F9FA;
+            padding: 100px 0;
+        }
+
+        .pricing-card {
+            background: white;
+            border-radius: 24px;
+            padding: 50px 40px;
+            border: 1px solid #E2E8F0;
+            transition: all 0.4s ease;
+            position: relative;
+            height: 100%;
+        }
+        .pricing-card.popular {
+            background: var(--primary-dark);
+            color: white;
+            transform: scale(1.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 30px 60px rgba(10, 17, 40, 0.2);
+            z-index: 2;
+        }
+        
+        @media (max-width: 991px) {
+            .pricing-card.popular {
+                transform: scale(1);
+            }
+        }
+
+        .pricing-card.popular .text-muted {
+            color: #A0AEC0 !important;
+        }
+        
+        .badge-popular {
+            position: absolute;
+            top: -15px;
+            right: 50%;
+            transform: translateX(50%);
+            background: linear-gradient(135deg, var(--accent-green), #2d8f72);
+            color: white;
+            padding: 8px 24px;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(67, 170, 139, 0.3);
+            white-space: nowrap;
+        }
+
+        /* Payment Providers Modal */
+        .payment-provider-card {
+            border: 2px solid #E2E8F0;
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+            height: 100%;
+        }
+
+        .payment-provider-card:hover {
+            border-color: var(--accent-orange);
+            transform: translateY(-4px);
+        }
+
+        .payment-provider-card.selected {
+            border-color: var(--accent-green);
+            background: rgba(67, 170, 139, 0.05);
+            box-shadow: 0 0 0 4px rgba(67, 170, 139, 0.1);
+        }
+        .provider-logo {
+            height: 45px;
+            object-fit: contain;
+            margin-bottom: 12px;
+        }
+
+        /* Footer */
+        .footer {
+            background: #060B19;
+            color: #A0AEC0;
+            padding: 60px 0 30px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .footer-brand {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+        }
     </style>
 </head>
-<body>
-    <nav>
-        <div class="nav-inner">
-            <a class="nav-logo" href="{{ url_for('index') }}"><span class="logo-mark">S</span>ScolariPay</a>
-            <div class="nav-links">
-                <a href="#features">Fonctionnalités</a>
-                <a href="#process">Comment ça marche</a>
-                <a href="#pricing">Tarifs</a>
-                <a class="nav-cta" href="{{ url_for('login') }}">Espace Client</a>
+
+<body data-bs-spy="scroll" data-bs-target="#navbar" data-bs-offset="100">
+
+    <!-- Navbar -->
+    <nav id="navbar" class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top py-3">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-white fs-4" href="/">
+                <i class="fa-solid fa-graduation-cap text-warning me-2"></i>ScolariPay
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="#fonctionnalites">Fonctionnalités</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#avantages">Avantages</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#tarifs">Tarifs</a></li>
+                    <li class="nav-item ms-lg-4 mt-3 mt-lg-0">
+                        <a class="btn btn-glass rounded-pill px-4 w-100" href="{{ url_for('login') }}">
+                            <i class="fa-regular fa-user me-2"></i>Espace Client
+                        </a>
+                    </li>
+                </ul>
             </div>
         </div>
     </nav>
 
-    <section class="hero">
-        <div class="hero-copy">
-            <span class="hero-badge"><span class="dot"></span>Disponible en Côte d'Ivoire, Sénégal & Cameroun</span>
-            <h1>Le paiement des frais scolaires, <em>enfin simple</em></h1>
-            <p>ScolariPay connecte les établissements scolaires, les parents et les élèves sur une seule plateforme sécurisée. Zéro file d'attente, zéro espèces, 100% de transparence.</p>
-            <div class="hero-actions">
-                <a class="btn-primary" href="#paymentModal" data-bs-toggle="modal" data-plan="Mensuel">Commencer maintenant</a>
-                <a class="btn-secondary" href="#process">Voir la démo ▶</a>
+    <!-- Flash Messages -->
+    <div class="position-fixed w-100" style="top: 90px; z-index: 1050;">
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-lg text-center fw-semibold mx-auto" style="max-width: 600px; border-radius: 15px;" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div class="hero-trust">
-                <div class="trust-pill">+2 400 établissements nous font déjà confiance</div>
-            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
         </div>
-        <div class="hero-visual">
-            <div class="payment-card">
-                <div class="card-header">
-                    <div class="school-info">
-                        <div class="school-avatar">L</div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <div class="glow-orb-1"></div>
+        <div class="glow-orb-2"></div>
+        
+        <div class="container relative z-10">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0" data-aos="fade-right" data-aos-duration="1000">
+                    <span class="badge bg-warning text-dark px-3 py-2 rounded-pill mb-4 fw-bold shadow-sm">🚀 SaaS de Paiement #1 en Afrique</span>
+                    <h1 class="hero-title">Modernisez la gestion financière de votre école.</h1>
+                    <p class="hero-subtitle">ScolariPay automatise vos encaissements, suit vos impayés en temps réel et génère vos reçus. Offrez une expérience premium aux parents avec le paiement par Mobile Money.</p>
+                    
+                    <div class="d-flex flex-column flex-sm-row gap-3">
+                        <a href="{{ url_for('demarrer_demo') }}" class="btn btn-orange rounded-pill fs-5">
+                            <i class="fa-solid fa-bolt me-2"></i>Démarrer la démo
+                        </a>
+                        <a href="#fonctionnalites" class="btn btn-glass rounded-pill fs-5">
+                            Découvrir <i class="fa-solid fa-arrow-down ms-2"></i>
+                        </a>
+                    </div>
+                    
+                    <div class="d-flex align-items-center mt-5">
+                        <div class="d-flex me-3">
+                            <img src="https://images.unsplash.com/photo-1531590878845-12627191e687?w=100&h=100&fit=crop" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -10px; z-index: 3;" alt="User">
+                            <img src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=100&h=100&fit=crop" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px; z-index: 2;" alt="User">
+                            <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" class="rounded-circle border border-2 border-white" width="40" height="40" style="margin-left: -15px; z-index: 1;" alt="User">
+                        </div>
                         <div>
-                            <div class="school-name">Lycée Excellence Abidjan</div>
-                            <div class="school-sub">Trimestre 2 · 2024–2025</div>
+                            <div class="text-warning small mb-1">
+                                <i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i><i class="fa-solid fa-star"></i>
+                            </div>
+                            <small class="text-white opacity-75">Rejoint par +200 directeurs d'école</small>
                         </div>
                     </div>
-                    <div class="status-badge">● Sécurisé</div>
                 </div>
-                <div>
-                    <p class="text-muted">Scolarité</p>
-                    <div class="amount">185 000 FCFA</div>
+                
+                <div class="col-lg-6" data-aos="fade-left" data-aos-duration="1200" data-aos-delay="200">
+                    <div class="mockup-wrapper">
+                        <div class="mockup-glass">
+                            <!-- Dashboard abstract visual (Unsplash business/chart) -->
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1000&q=80" alt="Interface ScolariPay" class="mockup-image shadow-sm">
+                        </div>
+                    </div>
                 </div>
-                <div class="payment-line"><span>Cantine</span><span>42 000 FCFA</span></div>
-                <div class="payment-line"><span>Transport</span><span>28 500 FCFA</span></div>
-                <div class="payment-line"><span>Assurance</span><span>8 000 FCFA</span></div>
-                <div class="payment-line" style="margin-top: 24px; font-weight: 700;">
-                    <span>Total à payer</span><span>263 500 FCFA</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Payment Logos -->
+    <div class="payment-logos text-center">
+        <div class="container d-flex justify-content-center flex-wrap align-items-center opacity-75">
+            <span class="fw-semibold text-muted me-4 mb-2 mb-md-0">Paiements acceptés :</span>
+            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Orange_logo.svg/1200px-Orange_logo.svg.png" alt="Orange Money" class="payment-logo">
+            <img src="https://seeklogo.com/images/M/mtn-mobile-money-logo-8D8ACDA2F0-seeklogo.com.png" alt="MTN" class="payment-logo">
+            <img src="https://avatars.githubusercontent.com/u/38188054?s=200&v=4" alt="Wave" class="payment-logo rounded-circle" style="height:30px;">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" class="payment-logo">
+        </div>
+    </div>
+
+    <!-- Fonctionnalités -->
+    <section id="fonctionnalites" class="py-5">
+        <div class="container py-5 mt-4">
+            <div class="text-center mb-5 pb-4" data-aos="fade-up">
+                <span class="text-uppercase text-warning fw-bold tracking-wide small"><i class="fa-solid fa-sparkles me-2"></i>Fonctionnalités Clés</span>
+                <h2 class="section-title mt-2 mb-3">Conçu pour l'excellence opérationnelle.</h2>
+                <p class="text-muted lead mx-auto" style="max-width: 600px;">Une suite d'outils performants pour remplacer vos fichiers Excel et vos reçus papier.</p>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="feature-card">
+                        <div class="icon-box icon-orange">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Dashboard Analytique</h4>
+                        <p class="text-muted mb-0">Visualisez votre trésorerie, vos encaissements quotidiens et vos prévisions en un clin d'œil grâce à nos graphiques dynamiques.</p>
+                    </div>
                 </div>
-                <a href="#paymentModal" class="btn-primary" data-bs-toggle="modal" data-plan="Mensuel">💳 Payer maintenant en toute sécurité</a>
-            </div>
-            <div class="stats-grid">
-                <div class="stat-pill"><span>✓</span><div><strong>98,7%</strong><br />Taux de réussite des paiements</div></div>
-                <div class="stat-pill"><span>⚡</span><div><strong>&lt; 30s</strong><br />Temps moyen par transaction</div></div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="feature-card">
+                        <div class="icon-box icon-green">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Zéro Impayé</h4>
+                        <p class="text-muted mb-0">Identifier automatiquement les retards de paiement. Relancez les parents ciblés en quelques clics et sécurisez vos revenus.</p>
+                    </div>
+                </div>
+                
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="feature-card">
+                        <div class="icon-box icon-blue">
+                            <i class="fa-solid fa-mobile-screen"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Paiement Mobile</h4>
+                        <p class="text-muted mb-0">Intégrez nativement Orange Money, MTN et Wave. Les parents paient depuis leur téléphone, la comptabilité se met à jour seule.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="400">
+                    <div class="feature-card">
+                        <div class="icon-box icon-blue">
+                            <i class="fa-solid fa-file-invoice-dollar"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Reçus Automatisés</h4>
+                        <p class="text-muted mb-0">Génération instantanée de reçus professionnels au format PDF, envoyés automatiquement aux parents par email.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="500">
+                    <div class="feature-card">
+                        <div class="icon-box icon-orange">
+                            <i class="fa-solid fa-users-gear"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Multi-Utilisateurs</h4>
+                        <p class="text-muted mb-0">Créez des accès dédiés pour votre comptable, vos secrétaires et le directeur, avec des droits stricts et un journal d'audit.</p>
+                    </div>
+                </div>
+
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="600">
+                    <div class="feature-card">
+                        <div class="icon-box icon-green">
+                            <i class="fa-solid fa-file-excel"></i>
+                        </div>
+                        <h4 class="fw-bold mb-3">Exports Faciles</h4>
+                        <p class="text-muted mb-0">Exportez toute votre base de données et vos bilans comptables au format Excel ou CSV pour votre cabinet comptable.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="section-inner" id="features">
-        <div class="section-title">
-            <p class="text-uppercase" style="color: var(--gold); letter-spacing: 0.2em; font-weight: 700;">Fonctionnalités</p>
-            <h2>Tout ce dont vous avez besoin, rien de superflu</h2>
-            <p>Conçu pour les établissements africains, pensé pour les parents modernes.</p>
-        </div>
-        <div class="feature-grid">
-            <div class="feature-card"><div class="feature-icon">💳</div><h3>Multi-paiements</h3><p>Orange Money, Wave, MTN, carte bancaire et virement dans une interface unifiée.</p></div>
-            <div class="feature-card"><div class="feature-icon">📊</div><h3>Tableau de bord temps réel</h3><p>Suivez les encaissements, exports comptables et rapports sans effort.</p></div>
-            <div class="feature-card"><div class="feature-icon">🔔</div><h3>Rappels intelligents</h3><p>Notifications automatiques avant chaque échéance pour réduire les impayés.</p></div>
-            <div class="feature-card"><div class="feature-icon">📂</div><h3>Gestion des élèves</h3><p>Importez vos listes, gérez les dossiers et suivez les soldes famille par famille.</p></div>
-            <div class="feature-card"><div class="feature-icon">🤝</div><h3>Paiements échelonnés</h3><p>Proposez des plans 2, 3 ou 4 fois sans frais pour augmenter le recouvrement.</p></div>
-            <div class="feature-card"><div class="feature-icon">🛡️</div><h3>Sécurité bancaire</h3><p>Architecture fiable, chiffrement de bout en bout et conformité réglementaire renforcée.</p></div>
-        </div>
-    </section>
-
-    <section class="section-inner" id="process">
-        <div class="section-title">
-            <p class="text-uppercase" style="color: var(--gold); letter-spacing: 0.2em; font-weight: 700;">Comment ça marche</p>
-            <h2>Opérationnel en moins de 24h</h2>
-            <p>Aucune compétence technique requise. Notre équipe vous accompagne à chaque étape.</p>
-        </div>
-        <div class="highlight-grid">
-            <div class="highlight-pill"><span>01</span><div><p>Création du compte</p><small>Renseignez les informations de votre établissement et activez en quelques minutes.</small></div></div>
-            <div class="highlight-pill"><span>02</span><div><p>Import des données</p><small>Importez vos listes d'élèves via Excel ou CSV, sans prise de tête.</small></div></div>
-            <div class="highlight-pill"><span>03</span><div><p>Configuration des frais</p><small>Paramétrez vos rubriques tarifaires et les échéances selon vos besoins.</small></div></div>
-            <div class="highlight-pill"><span>04</span><div><p>Collecte automatique</p><small>Les parents reçoivent leurs liens de paiement, les fonds arrivent directement sur votre compte.</small></div></div>
-        </div>
-    </section>
-
-    <section class="section-inner" id="pricing">
-        <div class="section-title">
-            <p class="text-uppercase" style="color: var(--gold); letter-spacing: 0.2em; font-weight: 700;">Tarifs</p>
-            <h2>Simple, transparent, sans surprise</h2>
-            <p>Commencez gratuitement. Évoluez selon la croissance de votre établissement.</p>
-        </div>
-        <div class="pricing-grid">
-            <div class="pricing-card">
-                <h3>Starter</h3>
-                <div class="pricing-price">0 FCFA</div>
-                <p class="pricing-subtitle">Pour toujours · Jusqu'à 200 élèves</p>
-                <ul class="pricing-list">
-                    <li>Jusqu'à 200 élèves</li>
-                    <li>2 moyens de paiement</li>
-                    <li>Tableau de bord basique</li>
-                    <li>Reçus PDF automatiques</li>
-                    <li>Support email</li>
-                </ul>
-                <a class="btn-primary" href="{{ url_for('demarrer_demo') }}">Commencer gratuitement</a>
-            </div>
-            <div class="pricing-card popular">
-                <h3>Professionnel</h3>
-                <div class="pricing-price">{{ '%.0f'|format(prix_mensuel) }} {{ devise }}</div>
-                <p class="pricing-subtitle">par mois · Élèves illimités</p>
-                <ul class="pricing-list">
-                    <li>Élèves illimités</li>
-                    <li>Tous les moyens de paiement</li>
-                    <li>Rapports avancés & exports</li>
-                    <li>Rappels SMS automatiques</li>
-                    <li>Paiements échelonnés</li>
-                    <li>Support prioritaire 24/7</li>
-                </ul>
-                <a class="btn-primary" href="#paymentModal" data-bs-toggle="modal" data-plan="Mensuel">Commencer maintenant</a>
-            </div>
-            <div class="pricing-card">
-                <h3>Annuel</h3>
-                <div class="pricing-price">{{ '%.0f'|format(prix_annuel) }} {{ devise }}</div>
-                <p class="pricing-subtitle">par an · Économisez 20%</p>
-                <ul class="pricing-list">
-                    <li>Élèves illimités</li>
-                    <li>Tous les moyens de paiement</li>
-                    <li>Validation comptable simplifiée</li>
-                    <li>Rappels et relances intelligentes</li>
-                    <li>Tableaux de bord consolidés</li>
-                </ul>
-                <a class="btn-primary" href="#paymentModal" data-bs-toggle="modal" data-plan="Annuel">Commencez par</a>
+    <!-- Stats Section -->
+    <section class="stats-section text-center">
+        <div class="container relative z-1">
+            <div class="row g-4">
+                <div class="col-md-4" data-aos="zoom-in" data-aos-delay="100">
+                    <div class="stat-number">10h+</div>
+                    <p class="fs-5 text-white opacity-75 mb-0">Gagnées par semaine</p>
+                </div>
+                <div class="col-md-4" data-aos="zoom-in" data-aos-delay="200">
+                    <div class="stat-number">0%</div>
+                    <p class="fs-5 text-white opacity-75 mb-0">D'erreur de caisse</p>
+                </div>
+                <div class="col-md-4" data-aos="zoom-in" data-aos-delay="300">
+                    <div class="stat-number">100%</div>
+                    <p class="fs-5 text-white opacity-75 mb-0">De transparence</p>
+                </div>
             </div>
         </div>
     </section>
 
-    <section class="cta-section">
-        <div class="cta-inner">
-            <div>
-                <h2>Passez à la gestion scolaire moderne dès aujourd'hui.</h2>
-                <p>Gagnez en efficacité tout en donnant aux parents un parcours de paiement simple, mobile et sécurisé.</p>
+    <!-- Pricing -->
+    <section id="tarifs" class="pricing-section">
+        <div class="container">
+            <div class="text-center mb-5 pb-3" data-aos="fade-up">
+                <h2 class="section-title mb-3">Des tarifs transparents.</h2>
+                <p class="text-muted lead mx-auto" style="max-width: 600px;">Choisissez le plan qui correspond à vos ambitions. Aucun frais caché, aucun engagement à long terme forcé.</p>
             </div>
-            <div>
-                <a class="btn-primary" href="#paymentModal" data-bs-toggle="modal" data-plan="Mensuel">Je veux payer maintenant</a>
+
+            <div class="row justify-content-center align-items-center g-4">
+                <!-- Mensuel -->
+                <div class="col-lg-4 col-md-6" data-aos="fade-right">
+                    <div class="pricing-card">
+                        <h3 class="fw-bold mb-2">Mensuel</h3>
+                        <p class="text-muted mb-4">La liberté de gérer mois par mois.</p>
+                        <div class="mb-4">
+                            <span class="display-5 fw-bold text-dark">{{ '{:,.0f}'.format(prix_mensuel).replace(',', ' ') }}</span>
+                            <span class="fs-5 text-muted fw-medium">{{ devise }}/mo</span>
+                        </div>
+                        <ul class="list-unstyled text-start mb-5">
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-success me-3 fs-5"></i><span>Élèves <strong>illimités</strong></span></li>
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-success me-3 fs-5"></i><span>Encaissement & Reçus PDF</span></li>
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-success me-3 fs-5"></i><span>Support par email</span></li>
+                            <li class="mb-3 d-flex align-items-center text-muted"><i class="fa-solid fa-times-circle me-3 fs-5"></i><span>Pas de priorité support</span></li>
+                        </ul>
+                        <button class="btn btn-outline-dark w-100 rounded-pill py-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#paymentModal" data-plan="Mensuel">
+                            Commencer ce plan
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Annuel -->
+                <div class="col-lg-4 col-md-6" data-aos="fade-up" style="z-index: 10;">
+                    <div class="pricing-card popular">
+                        <span class="badge-popular"><i class="fa-solid fa-star me-1 text-warning"></i> ÉCONOMISEZ 22%</span>
+                        <h3 class="fw-bold mb-2">Annuel</h3>
+                        <p class="text-muted mb-4">Sérénité totale pour toute l'année.</p>
+                        <div class="mb-4">
+                            <span class="display-5 fw-bold text-white">{{ '{:,.0f}'.format(prix_annuel).replace(',', ' ') }}</span>
+                            <span class="fs-5 text-muted fw-medium">{{ devise }}/an</span>
+                        </div>
+                        <ul class="list-unstyled text-start mb-5">
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-warning me-3 fs-5"></i><span>Élèves <strong>illimités</strong></span></li>
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-warning me-3 fs-5"></i><span>Tableaux de bord avancés</span></li>
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-warning me-3 fs-5"></i><span>Tous les exports comptables</span></li>
+                            <li class="mb-3 d-flex align-items-center"><i class="fa-solid fa-check-circle text-warning me-3 fs-5"></i><span>Support <strong>Prioritaire 24/7</strong></span></li>
+                        </ul>
+                        <button class="btn btn-orange w-100 rounded-pill py-3 fw-bold" data-bs-toggle="modal" data-bs-target="#paymentModal" data-plan="Annuel">
+                            S'abonner maintenant
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
-    <footer class="footer">
-        <p>© 2026 ScolariPay. Tous droits réservés. <a href="{{ url_for('login') }}">Connexion</a></p>
-    </footer>
-
+    <!-- Payment Method Selection Modal -->
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered modal-lg">
-            <div class="modal-content" style="border-radius: 28px; overflow: hidden;">
-                <div class="modal-body p-0">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; min-height: 520px;">
-                        <div style="background: linear-gradient(180deg, #0B1F3A 0%, #122B52 100%); padding: 36px; color:#fff; display:flex; flex-direction:column; justify-content:center; gap:20px;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0" style="border-radius: 24px; box-shadow: 0 30px 60px rgba(0,0,0,0.2);">
+                <div class="modal-header border-0 bg-light px-4 py-4" style="border-radius: 24px 24px 0 0;">
+                    <h4 class="modal-title fw-bold" style="color: var(--primary-dark);">
+                        <i class="fa-solid fa-lock text-success me-2"></i>Finaliser l'inscription
+                    </h4>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 p-md-5">
+                    <form id="paymentForm" method="POST" action="{{ url_for('signup_with_payment') }}">
+                        <input type="hidden" id="selectedPlan" name="plan" value="Mensuel">
+
+                        <h6 class="fw-bold text-dark mb-3 text-uppercase small tracking-wide">1. Compte Administrateur</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark small">Nom de l'établissement</label>
+                                <input type="text" class="form-control form-control-lg bg-light border-0 shadow-none" name="nom_ecole" placeholder="Lycée d'Excellence" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold text-dark small">Email de direction</label>
+                                <input type="email" class="form-control form-control-lg bg-light border-0 shadow-none" name="email_contact" placeholder="contact@ecole.com" required>
+                            </div>
+                        </div>
+
+                        <hr class="my-4 border-light">
+
+                        <h6 class="fw-bold text-dark mb-3 text-uppercase small tracking-wide">2. Mode de paiement</h6>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="w-100 h-100">
+                                    <input type="radio" name="payment_method" value="Stripe" checked class="d-none" onchange="toggleMobileProviders()">
+                                    <div class="payment-provider-card selected">
+                                        <img src="https://upload.wikimedia.org/wikipedia/commons/0/01/Stripe_Logo%2C_revised_2016.svg" alt="Stripe" class="provider-logo">
+                                        <h6 class="fw-bold mb-1">Carte Bancaire</h6>
+                                        <small class="text-muted">Sécurisé par Stripe</small>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="w-100 h-100">
+                                    <input type="radio" name="payment_method" value="Mobile Money" class="d-none" onchange="toggleMobileProviders()">
+                                    <div class="payment-provider-card">
+                                        <div class="d-flex justify-content-center gap-2 mb-2">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Orange_logo.svg/1200px-Orange_logo.svg.png" style="height:25px;" alt="Orange">
+                                            <img src="https://seeklogo.com/images/M/mtn-mobile-money-logo-8D8ACDA2F0-seeklogo.com.png" style="height:25px;" alt="MTN">
+                                        </div>
+                                        <h6 class="fw-bold mb-1 mt-3">Mobile Money</h6>
+                                        <small class="text-muted">Paiement local</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div id="mobileProvidersSection" class="d-none mt-4 p-4 bg-light rounded-4">
+                            <h6 class="fw-bold text-dark mb-3">Choisissez votre opérateur</h6>
+                            <div class="row g-2 mb-3">
+                                <div class="col-4">
+                                    <label class="w-100">
+                                        <input type="radio" name="mobile_provider" value="Orange Money" class="d-none">
+                                        <div class="payment-provider-card p-2">
+                                            <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c8/Orange_logo.svg/1200px-Orange_logo.svg.png" alt="Orange" class="img-fluid" style="height:30px">
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-4">
+                                    <label class="w-100">
+                                        <input type="radio" name="mobile_provider" value="MTN Mobile Money" class="d-none">
+                                        <div class="payment-provider-card p-2">
+                                            <img src="https://seeklogo.com/images/M/mtn-mobile-money-logo-8D8ACDA2F0-seeklogo.com.png" alt="MTN" class="img-fluid" style="height:30px">
+                                        </div>
+                                    </label>
+                                </div>
+                                <div class="col-4">
+                                    <label class="w-100">
+                                        <input type="radio" name="mobile_provider" value="Wave" class="d-none">
+                                        <div class="payment-provider-card p-2">
+                                            <img src="https://avatars.githubusercontent.com/u/38188054?s=200&v=4" alt="Wave" class="img-fluid rounded-circle" style="height:30px">
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
                             <div>
-                                <p style="text-transform: uppercase; letter-spacing:0.16em; color: rgba(255,255,255,0.55); font-size: .78rem; margin-bottom: 12px;">Paiement sécurisé</p>
-                                <h3 style="font-size:2rem; line-height:1.05; margin-bottom: 16px;">Finalisez votre souscription</h3>
-                                <p style="color: rgba(255,255,255,0.72); line-height:1.8;">Choisissez votre mode de paiement et complétez votre inscription pour démarrer immédiatement.</p>
-                            </div>
-                            <div style="background: rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); border-radius: 24px; padding: 22px;">
-                                <p style="color: rgba(255,255,255,0.7); margin-bottom: 10px;">Plan sélectionné</p>
-                                <h4 id="modalPlan" style="font-size: 1.75rem; margin-bottom: 14px;">Mensuel</h4>
-                                <p style="font-size: 1rem; color: rgba(255,255,255,0.72);">Total à payer</p>
-                                <div id="modalTotal" style="font-size: 2rem; font-weight: 900;">{{ '%.0f'|format(prix_mensuel) }} {{ devise }}</div>
+                                <label class="form-label fw-semibold text-dark small">Numéro Mobile Money</label>
+                                <input type="tel" class="form-control form-control-lg bg-white border-0 shadow-sm" name="mobile_number" id="mobileNumber" placeholder="+237 6XX XX XX XX">
                             </div>
                         </div>
-                        <div class="form-card">
-                            <form id="paymentForm" method="POST" action="{{ url_for('signup_with_payment') }}">
-                                <input type="hidden" id="selectedPlan" name="plan" value="Mensuel" />
+
+                        <hr class="my-4 border-light">
+
+                        <div class="bg-dark text-white p-4 rounded-4 mb-4" style="background: var(--primary-dark) !important;">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
                                 <div>
-                                    <label for="nom_ecole">Nom de l'établissement</label>
-                                    <input type="text" id="nom_ecole" name="nom_ecole" placeholder="Ex: Lycée Jean Moulin" required />
+                                    <h5 class="mb-1 fw-bold text-white">Plan <span id="planName">Mensuel</span></h5>
+                                    <span class="badge bg-white text-dark" id="planDuration">30 jours</span>
                                 </div>
-                                <div>
-                                    <label for="email_contact">Email de direction</label>
-                                    <input type="email" id="email_contact" name="email_contact" placeholder="direction@lycee.fr" required />
+                                <div class="text-end">
+                                    <h3 class="mb-0 fw-bold text-white" id="planPrice">{{ '{:,.0f}'.format(prix_mensuel).replace(',', ' ') }}</h3>
+                                    <small class="text-white opacity-75">{{ devise }}</small>
                                 </div>
-                                <div>
-                                    <label>Mode de paiement</label>
-                                    <select name="payment_method" id="payment_method" style="width:100%;" onchange="toggleMobileProviderSection()">
-                                        <option value="Stripe">Stripe (Carte)</option>
-                                        <option value="Mobile Money">Mobile Money</option>
-                                    </select>
-                                </div>
-                                <div id="mobileProviderContainer" class="mobile-section">
-                                    <div style="margin-top: 16px; display: grid; gap: 12px;">
-                                        <label for="mobile_provider">Fournisseur Mobile Money</label>
-                                        <select name="mobile_provider" id="mobile_provider" style="width:100%;">
-                                            <option value="Orange Money">Orange Money</option>
-                                            <option value="MTN Mobile Money">MTN Mobile Money</option>
-                                            <option value="Wave">Wave</option>
-                                        </select>
-                                    </div>
-                                    <div style="margin-top: 16px;">
-                                        <label for="mobile_number">Numéro Mobile Money</label>
-                                        <input type="tel" id="mobile_number" name="mobile_number" placeholder="+237 6X XX XX XX" />
-                                    </div>
-                                </div>
-                                <div class="plan-summary">
-                                    <h5>Détail du devis</h5>
-                                    <p id="modalDescription" style="margin-bottom: 8px; color: var(--text-muted);">Plan Mensuel, accès complet pour votre établissement.</p>
-                                    <p style="font-size: 1rem; font-weight: 700;">Total à payer <span id="modalPrice" style="float:right;">{{ '%.0f'|format(prix_mensuel) }} {{ devise }}</span></p>
-                                </div>
-                                <button type="submit" class="btn-primary" style="width:100%;">Payer maintenant</button>
-                            </form>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary">
+                                <strong class="text-white">Total</strong>
+                                <h4 class="mb-0 fw-bold text-warning" id="totalPrice">{{ '{:,.0f}'.format(prix_mensuel).replace(',', ' ') }} {{ devise }}</h4>
+                            </div>
                         </div>
-                    </div>
+
+                        <button type="submit" class="btn btn-orange btn-lg w-100 rounded-pill fw-bold shadow-lg">
+                            Payer et créer l'école <i class="fa-solid fa-arrow-right ms-2"></i>
+                        </button>
+                        <p class="text-muted text-center mt-3 mb-0 small"><i class="fa-solid fa-lock text-success me-1"></i> Paiement 100% sécurisé et crypté.</p>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container text-center">
+            <h2 class="footer-brand mb-3"><i class="fa-solid fa-graduation-cap text-warning me-2"></i>ScolariPay</h2>
+            <p class="mb-4" style="max-width: 400px; margin: 0 auto;">L'outil de gestion financière pensé par et pour les établissements scolaires d'excellence.</p>
+            <p class="mb-0 small opacity-50">&copy; 2026 ScolariPay. Tous droits réservés.</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap & Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+
     <script>
-      const prices = { Mensuel: {{ prix_mensuel }}, Annuel: {{ prix_annuel }} };
-      const descriptions = { Mensuel: 'Plan Mensuel, accès complet pour votre établissement.', Annuel: 'Plan Annuel premium avec facturation annuelle et économie 20%.' };
-      document.querySelectorAll('[data-plan]').forEach(button => {
-        button.addEventListener('click', () => {
-          const plan = button.getAttribute('data-plan');
-          const modalPlan = document.getElementById('modalPlan');
-          const modalTotal = document.getElementById('modalTotal');
-          const modalPrice = document.getElementById('modalPrice');
-          const modalDescription = document.getElementById('modalDescription');
-          const selectedPlan = document.getElementById('selectedPlan');
-          if (plan && prices[plan]) {
-            selectedPlan.value = plan;
-            modalPlan.textContent = plan;
-            modalTotal.textContent = prices[plan].toLocaleString('fr-FR') + ' {{ devise }}';
-            modalPrice.textContent = prices[plan].toLocaleString('fr-FR') + ' {{ devise }}';
-            modalDescription.textContent = descriptions[plan];
-          }
+        // Init AOS Animations
+        AOS.init({
+            once: true,
+            offset: 50,
+            duration: 800
         });
-      });
-      function toggleMobileProviderSection() {
-        const method = document.getElementById('payment_method').value;
-        const section = document.getElementById('mobileProviderContainer');
-        if (method === 'Mobile Money') {
-          section.classList.add('active');
-          document.getElementById('mobile_number').required = true;
-        } else {
-          section.classList.remove('active');
-          document.getElementById('mobile_number').required = false;
+
+        // Pricing data
+        const prices = {
+            'Mensuel': {{ prix_mensuel }},
+            'Annuel': {{ prix_annuel }}
+        };
+
+        const planDetails = {
+            'Mensuel': { duration: 'Accès 30 jours', name: 'Mensuel' },
+            'Annuel': { duration: 'Accès 12 mois', name: 'Annuel' }
+        };
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('fr-FR', { 
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(amount);
         }
-      }
-      document.addEventListener('DOMContentLoaded', () => toggleMobileProviderSection());
+
+        function updateInvoice() {
+            const selectedPlan = document.getElementById('selectedPlan').value;
+            const price = prices[selectedPlan];
+            const details = planDetails[selectedPlan];
+
+            document.getElementById('planName').textContent = details.name;
+            document.getElementById('planDuration').textContent = details.duration;
+            document.getElementById('planPrice').textContent = formatCurrency(price);
+            document.getElementById('totalPrice').textContent = formatCurrency(price) + ' {{ devise }}';
+        }
+
+        const paymentModal = document.getElementById('paymentModal');
+        if (paymentModal) {
+            paymentModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const plan = button.getAttribute('data-plan') || 'Mensuel';
+                document.getElementById('selectedPlan').value = plan;
+                updateInvoice();
+            });
+        }
+
+        function toggleMobileProviders() {
+            const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+            const mobileSection = document.getElementById('mobileProvidersSection');
+            const mobileNumber = document.getElementById('mobileNumber');
+
+            if (paymentMethod === 'Mobile Money') {
+                mobileSection.classList.remove('d-none');
+                mobileNumber.required = true;
+            } else {
+                mobileSection.classList.add('d-none');
+                mobileNumber.required = false;
+            }
+        }
+
+        document.querySelectorAll('.payment-provider-card').forEach(card => {
+            card.addEventListener('click', function() {
+                const label = this.closest('label');
+                if (label) {
+                    const input = label.querySelector('input[type="radio"]');
+                    if (input) {
+                        input.checked = true;
+                        if(input.name === 'payment_method'){
+                            document.querySelectorAll('input[name="payment_method"]').forEach(el => {
+                                el.closest('label').querySelector('.payment-provider-card').classList.remove('selected');
+                            });
+                            this.classList.add('selected');
+                            toggleMobileProviders();
+                        } else if(input.name === 'mobile_provider') {
+                            document.querySelectorAll('input[name="mobile_provider"]').forEach(el => {
+                                el.closest('label').querySelector('.payment-provider-card').classList.remove('selected');
+                            });
+                            this.classList.add('selected');
+                        }
+                    }
+                }
+            });
+        });
+        
+        // Change navbar background on scroll
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar-custom');
+            if (window.scrollY > 50) {
+                navbar.style.backgroundColor = 'rgba(10, 17, 40, 0.98)';
+                navbar.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)';
+            } else {
+                navbar.style.backgroundColor = 'rgba(10, 17, 40, 0.8)';
+                navbar.style.boxShadow = 'none';
+            }
+        });
     </script>
 </body>
 </html>
