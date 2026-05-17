@@ -42,6 +42,34 @@
     .search-bar-container {
         min-width: 250px;
     }
+    
+    /* Responsive Sidebar */
+    @media (min-width: 768px) {
+        .sidebar {
+            min-height: 80vh;
+        }
+    }
+    @media (max-width: 767.98px) {
+        .sidebar {
+            min-height: auto;
+            margin-bottom: 1.5rem;
+            position: relative !important; /* overrides sticky-top */
+            top: 0 !important;
+        }
+        .sidebar .nav {
+            flex-direction: row !important;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 0.5rem;
+        }
+        .sidebar .nav-item {
+            margin-right: 0.5rem;
+        }
+        .sidebar .nav-link {
+            padding: 0.5rem 1rem;
+        }
+    }
 </style>
 {% endblock %}
 

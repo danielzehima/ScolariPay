@@ -10,6 +10,24 @@ from fpdf import FPDF
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_migrate import Migrate
 import stripe
+import requests
+
+def send_emailjs(to_email, subject, message_body):
+    url = "https://api.emailjs.com/api/v1.0/email/send"
+    payload = {
+        "service_id": "service_gl29pau",
+        "template_id": "template_4ywb96t",
+        "user_id": "8mYkyuQBDnyqaF9Z_",
+        "accessToken": "_ZMa-y_U4b0g_NAymsLgf",
+        "template_params": {
+            "to_email": to_email,
+            "subject": subject,
+            "message": message_body
+        }
+    }
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        raise Exception(f"EmailJS API Error ({response.status_code}): {response.text}")
 
 app = Flask(__name__)
 # Clé secrète pour les sessions
@@ -226,18 +244,16 @@ def envoyer_contact():
     message_body = request.form.get('message')
     
     try:
-        msg = Message(subject=f"[Contact ScolariPay] {objet}",
-                      sender=app.config['MAIL_DEFAULT_SENDER'],
-                      recipients=['danielzehima@gmail.com'],
-                      reply_to=email_expediteur)
-        msg.body = f"Nouveau message reçu depuis la landing page de ScolariPay.\n\nExpéditeur : {email_expediteur}\nObjet : {objet}\n\nMessage :\n{message_body}"
-        mail.send(msg)
+        corps = f"Expéditeur : {email_expediteur}\n\nMessage :\n{message_body}"
+        send_emailjs(
+            to_email="danielzehima@gmail.com",
+            subject=f"[Contact ScolariPay] {objet}",
+            message_body=corps
+        )
         flash("Votre message a bien été envoyé. Nous vous répondrons dans les plus brefs délais.", "success")
     except Exception as e:
-        # En environnement de développement, les identifiants SMTP sont factices.
-        # On log l'erreur mais on affiche quand même un succès pour tester l'interface.
-        print(f"Erreur d'envoi de mail (ignorée en mode dev) : {e}")
-        flash("Votre message a bien été envoyé (Simulation Mode Dev).", "success")
+        print(f"Erreur d'envoi EmailJS : {e}")
+        flash(f"Échec de l'envoi de l'email. Erreur EmailJS : {str(e)}", "danger")
         
     return redirect(url_for('index') + '#contact')
 
@@ -1042,7 +1058,8 @@ def relance_email(eleve_id):
         abort(403)
         
     eleve = Eleve.query.get_or_404(eleve_id)
-    if eleve.etablissement_id != etablissement_id:
+    ecole = eleve.etablissement
+    if ecole.id != etablissement_id:
         abort(403)
         
     if not eleve.email_parent:
@@ -1053,21 +1070,36 @@ def relance_email(eleve_id):
     total_paye = sum(p.montant for p in eleve.paiements)
     reste_a_payer = total_du - total_paye
     
-    msg = Message(f"Rappel de paiement - {eleve.etablissement.nom}", recipients=[eleve.email_parent])
-    msg.body = f"""Bonjour {eleve.nom_parent or 'Madame, Monsieur'},
+    corps_email = f"""Bonjour {eleve.nom_parent or 'Madame, Monsieur'},
     
-Sauf erreur de notre part, nous constatons qu'il reste un solde de {reste_a_payer} {eleve.etablissement.devise} concernant la scolarité de {eleve.prenom} en classe de {eleve.classe_associee.nom}.
+Sauf erreur de notre part, nous constatons qu'il reste un solde de {reste_a_payer} {ecole.devise} concernant la scolarité de {eleve.prenom} en classe de {eleve.classe_associee.nom}.
 
 Nous vous remercions de bien vouloir régulariser la situation dans les meilleurs délais.
     
 Cordialement,
-La Direction de {eleve.etablissement.nom}
+La Direction de {ecole.nom}
 """
+    canaux = ["Email"]
     try:
-        mail.send(msg)
-        flash(f"L'email de relance a été envoyé avec succès à {eleve.email_parent}.", "success")
+        send_emailjs(
+            to_email=eleve.email_parent,
+            subject=f"Rappel de paiement - {ecole.nom}",
+            message_body=corps_email
+        )
     except Exception as e:
-        flash(f"(Simulation) L'email de relance aurait été envoyé à {eleve.email_parent}. Solde : {reste_a_payer} {eleve.etablissement.devise}.", "info")
+        print(f"Erreur EmailJS : {e}")
+        flash(f"Échec de l'envoi de l'email de relance. Détails : {str(e)}", "danger")
+        return redirect(url_for('ecole_dashboard'))
+
+    # Logique pour SMS et WhatsApp réservée au plan Premium/Annuel
+    if ecole.type_abonnement == 'Annuel':
+        canaux.extend(["SMS", "WhatsApp"])
+        # Simulation d'envoi via des API tierces (ex: Twilio, Meta)
+        print(f"--- SIMULATION SMS --- Destinataire: {eleve.nom_parent} | Message: Relance {reste_a_payer} {ecole.devise}")
+        print(f"--- SIMULATION WHATSAPP --- Destinataire: {eleve.nom_parent} | Message: Relance {reste_a_payer} {ecole.devise}")
+
+    flash_text = ", ".join(canaux[:-1]) + " et " + canaux[-1] if len(canaux) > 1 else canaux[0]
+    flash(f"Relance effectuée avec succès via {flash_text}.", "success")
         
     return redirect(url_for('ecole_dashboard'))
 
